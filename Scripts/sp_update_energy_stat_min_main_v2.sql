@@ -50,7 +50,7 @@ AS $procedure$
 --        SELECT 0 INTO v_duration;
 
         PERFORM DBLINK('host=/var/run/postgresql port=5432 user=postgres password=kenda2415@ dbname=thingsboard',
-          FORMAT('CALL public.sp_update_energy_stat_min_sub_v2( ''%s''. ''%s'', ''%s'' )', v_device_id, p_start_ts, p_end_ts));
+          FORMAT('CALL public.sp_update_energy_stat_min_sub_v2( ''%s'', ''%s'', ''%s'' )', v_device_id, p_start_ts, p_end_ts));
 
 --        SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
 --        RAISE NOTICE '處理 % 的資料，計時 % 秒', v_device_id, v_duration;
