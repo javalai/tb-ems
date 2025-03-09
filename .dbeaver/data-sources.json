@@ -1,0 +1,108 @@
+{
+	"folders": {},
+	"connections": {
+		"postgres-jdbc-1957b1776f9-2f15a80fd8de7418": {
+			"provider": "postgresql",
+			"driver": "postgres-jdbc",
+			"name": "ewrreader@ewr",
+			"save-password": true,
+			"configuration": {
+				"host": "richard.kenda.com.tw",
+				"port": "5432",
+				"database": "ewr",
+				"url": "jdbc:postgresql://richard.kenda.com.tw:5432/ewr",
+				"configurationType": "MANUAL",
+				"home": "postgresql_client",
+				"type": "dev",
+				"closeIdleConnection": true,
+				"properties": {
+					"connectTimeout": "20",
+					"loginTimeout": "20",
+					"escapeSyntaxCallMode": "callIfNoReturn"
+				},
+				"provider-properties": {
+					"@dbeaver-show-non-default-db@": "false",
+					"@dbeaver-chosen-role@": "",
+					"@dbeaver-show-template-db@": "false",
+					"@dbeaver-show-unavailable-db@": "false",
+					"show-database-statistics": "false",
+					"@dbeaver-read-all-data-types-db@": "false",
+					"read-keys-with-columns": "false",
+					"@dbeaver-use-prepared-statements-db@": "false",
+					"postgresql.dd.plain.string": "false",
+					"postgresql.dd.tag.string": "false"
+				},
+				"auth-model": "native",
+				"bootstrap": {
+					"defaultCatalog": "ewr",
+					"defaultSchema": "hq"
+				}
+			}
+		},
+		"postgres-jdbc-1957b177750-2f26529e04da939b": {
+			"provider": "postgresql",
+			"driver": "postgres-jdbc",
+			"name": "ewrwriter@ewr",
+			"save-password": true,
+			"configuration": {
+				"host": "richard.kenda.com.tw",
+				"port": "5432",
+				"database": "ewr",
+				"url": "jdbc:postgresql://richard.kenda.com.tw:5432/ewr",
+				"configurationType": "MANUAL",
+				"home": "postgresql_client",
+				"type": "dev",
+				"closeIdleConnection": true,
+				"provider-properties": {
+					"@dbeaver-show-non-default-db@": "false",
+					"@dbeaver-chosen-role@": ""
+				},
+				"auth-model": "native",
+				"bootstrap": {
+					"defaultCatalog": "ewr",
+					"defaultSchema": "hq"
+				}
+			}
+		},
+		"postgres-jdbc-1957b177781-587b091bbb328aa4": {
+			"provider": "postgresql",
+			"driver": "postgres-jdbc",
+			"name": "thingsboard",
+			"save-password": true,
+			"configuration": {
+				"host": "192.1.13.13",
+				"port": "5432",
+				"database": "thingsboard",
+				"url": "jdbc:postgresql://192.1.13.13:5432/thingsboard",
+				"configurationType": "MANUAL",
+				"home": "postgresql_client",
+				"type": "dev",
+				"closeIdleConnection": true,
+				"provider-properties": {
+					"@dbeaver-show-non-default-db@": "false",
+					"@dbeaver-chosen-role@": ""
+				},
+				"auth-model": "native",
+				"bootstrap": {
+					"txnIsolation": 2
+				}
+			}
+		}
+	},
+	"connection-types": {
+		"dev": {
+			"name": "Development",
+			"color": "255,255,255",
+			"description": "Regular development database",
+			"auto-commit": true,
+			"confirm-execute": false,
+			"confirm-data-change": false,
+			"smart-commit": false,
+			"smart-commit-recover": true,
+			"auto-close-transactions": true,
+			"close-transactions-period": 1800,
+			"auto-close-connections": true,
+			"close-connections-period": 14400
+		}
+	}
+}
