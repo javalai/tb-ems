@@ -51,7 +51,7 @@ AS $procedure$
           AND kd."key" IN ('Energy')
           AND hd.device_id = p_device_id
           AND tk.ts >= COALESCE(v_start_epoch, EXTRACT(EPOCH FROM TO_TIMESTAMP('1911-01-01', 'YYYY-MM-DD') )*1000)
-          AND tk.ts <= COALESCE(v_end_epoch, EXTRACT(EPOCH FROM CURRENT_TIMESTAMP )*1000)
+          AND tk.ts < COALESCE(v_end_epoch, EXTRACT(EPOCH FROM CURRENT_TIMESTAMP )*1000)
         ORDER BY tk.entity_id, hd.device_id, stat_time, stat_type, consumed_energy, hd.device_type, new_key_id
       ) t
       JOIN coeffs ce ON ce.factory_id = t.factory_id
