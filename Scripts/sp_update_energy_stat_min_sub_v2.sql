@@ -12,8 +12,8 @@ AS $procedure$
     v_start_time TIMESTAMP;
     v_duration FLOAT;
 
-    v_start_epoch INT; -- 查詢的起始點
-    v_end_epoch INT; -- 查詢的結束點
+    v_start_epoch INT8 := 0; -- 查詢的起始點
+    v_end_epoch INT8 := 0; -- 查詢的結束點
 
     v_ins_rows NUMERIC := 0;
 
@@ -46,7 +46,7 @@ AS $procedure$
         FROM ts_kv tk 
         JOIN hd_device hd ON hd.entity_id = tk.entity_id 
         JOIN key_dictionary kd ON kd.key_id = tk."key"
-        LEFT JOIN hd_device_stat_min_latest hdsml ON hdsml.device_id=hd.device_id AND hdsml.device_type = hd.device_type AND hdsml.key_id = tk."key" -- kd.key_id
+        --LEFT JOIN hd_device_stat_min_latest hdsml ON hdsml.device_id=hd.device_id AND hdsml.device_type = hd.device_type AND hdsml.key_id = tk."key" -- kd.key_id
         WHERE hd.device_type ='E'
           AND kd."key" IN ('Energy')
           AND hd.device_id = p_device_id
@@ -82,7 +82,7 @@ AS $procedure$
     SELECT CLOCK_TIMESTAMP() INTO v_start_time;
     SELECT 0 INTO v_duration;
 
-    RAISE NOTICE '準備新增 % 的分統計資料...', p_device_id;
+    RAISE NOTICE '準備新增 % 的分統計資料%(%) ~ %(%)...', p_device_id, p_start_ts, v_start_epoch, p_end_ts, v_end_epoch;
 
     SELECT key_id INTO v_energy_key_id FROM key_dictionary WHERE "key"='Energy';
     SELECT key_id INTO v_consumed_energy_key_id FROM key_dictionary WHERE "key"='ConsumedEnergy';
@@ -101,6 +101,8 @@ AS $procedure$
     END IF;
 
     LOOP
+
+      BEGIN
 
         -- 預先讀取下一筆資料
         FETCH v_cursor INTO v_next_record;
@@ -129,12 +131,6 @@ AS $procedure$
         ;
 
         v_ins_rows := v_ins_rows + 1;
-
-        -- 每CONST_COMMIT_COUNT筆資料就提交(COMMIT)一次，以加快速度
-        IF MOD(v_ins_rows, CONST_COMMIT_COUNT) = 0 THEN
-            COMMIT;
-        END IF;
-
 
         IF is_last THEN
             RAISE NOTICE '  id: %, time: % -> 最後一筆!', v_record.device_id, v_record.stat_time;
@@ -166,18 +162,20 @@ AS $procedure$
         -- 將下一筆資料轉為當前記錄
         v_record := v_next_record;
 
+       EXCEPTION
+         WHEN OTHERS THEN
+            -- 捕捉異常並記錄錯誤，不中斷主迴圈
+            RAISE EXCEPTION ' 處理設備 % 時發生錯誤，資料時間: %，原因: %。', p_device_id, v_record.stat_time, SQLERRM;
+       END;
+
     END LOOP;
 
     COMMIT;
 
     SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
-    -- GET DIAGNOSTICS ins_rows = ROW_COUNT;
+
     RAISE NOTICE '  新增 % 的分統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
 
-    EXCEPTION
-          WHEN OTHERS THEN
-            -- 捕捉異常並記錄錯誤，不中斷主迴圈
-            RAISE EXCEPTION ' 處理設備 % 時發生錯誤，資料時間: %，原因: %。', p_device_id, v_record.stat_time, SQLERRM;
     
   END;
 $procedure$
