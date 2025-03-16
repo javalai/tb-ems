@@ -5,20 +5,19 @@ CREATE OR REPLACE PROCEDURE public.sp_update_energy_stat_day_main()
 AS $procedure$
     
 DECLARE 
+
   v_device_cursor CURSOR FOR
     SELECT hd.device_id, hd.entity_id 
     FROM hd_device hd
-    WHERE hd.entity_id IS NOT NULL 
-      AND hd.device_type = 'E'
+    WHERE hd.entity_id IS NOT NULL
       AND hd.factory_id NOT IN ('KC', 'KT')
-      AND hd.device_id LIKE 'E00%'
     ;
   v_device_record RECORD;
   v_device_id VARCHAR(50);
   v_entity_id UUID;
 
-  ins_rows numeric;
-  upd_rows numeric;
+  ins_rows NUMERIC;
+  upd_rows NUMERIC;
 
 BEGIN
   -- Open cursor
