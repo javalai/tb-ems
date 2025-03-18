@@ -11,6 +11,7 @@ DECLARE
     FROM hd_device hd
     WHERE hd.entity_id IS NOT NULL
       AND hd.factory_id NOT IN ('KC', 'KT')
+    ORDER BY hd.device_id
     ;
   v_device_record RECORD;
   v_device_id VARCHAR(50);
