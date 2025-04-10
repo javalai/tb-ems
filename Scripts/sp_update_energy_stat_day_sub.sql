@@ -8,6 +8,7 @@ AS $procedure$
     
 DECLARE 
 
+  v_DEBUG BOOL := 0;
   v_record RECORD;
   v_next_record RECORD;
   v_energy_key_id INT;
@@ -33,7 +34,6 @@ DECLARE
     )
     SELECT 
       HD_DATE_TRUNC(hdsh.stat_time) AS truncated_stat_day,
-      hdsh.entity_id,
       hdsh.device_id, 
       3 AS stat_type, -- 日統計
       hdsh.device_type,
@@ -69,22 +69,22 @@ DECLARE
       */
       AND hdsh.stat_time > COALESCE (st.latest_stat_time, TO_TIMESTAMP('1911-01-01', 'YYYY-MM-DD'))
     GROUP BY 
-      truncated_stat_day, /*hdsh.stat_time, latest_stat_time,*/ hdsh.entity_id, hdsh.device_id, stat_type, hdsh.device_type, hdsh.key_id, kd."key", hcp.float_value
+      truncated_stat_day, hdsh.device_id, stat_type, hdsh.device_type, hdsh.key_id, kd."key", hcp.float_value
     ORDER BY
-      truncated_stat_day, hdsh.entity_id, hdsh.device_id, stat_type, hdsh.device_type, hdsh.key_id
+      truncated_stat_day, hdsh.device_id, stat_type, hdsh.device_type, hdsh.key_id
     ;
 
 
 BEGIN
-     
-  RAISE NOTICE '開始處理 % 的能資源耗用量日統計資料...', p_device_id;
+  
+  IF v_DEBUG THEN RAISE NOTICE '開始處理 % 的能資源耗用量日統計資料...', p_device_id; END IF;
 
   -- 通常最後一筆時統計資料，因為時間差的關係，有可能不完整，需要重新統計
   -- 以下處理新的日統計資料
   SELECT CLOCK_TIMESTAMP() INTO v_start_time;
   SELECT 0 INTO v_duration;
 
-  RAISE NOTICE '準備新增 % 的能資源耗用量日統計資料...', p_device_id;
+  IF v_DEBUG THEN RAISE NOTICE '準備新增 % 的能資源耗用量日統計資料...', p_device_id; END IF;
 
   -- 打開 Cursor
   OPEN v_cursor;
@@ -109,13 +109,13 @@ BEGIN
       END IF;
 
       INSERT INTO hd_device_statistics_daily (
-        stat_time, entity_id, device_id, stat_type, device_type, key_id, 
+        stat_time, device_id, stat_type, device_type, key_id, 
         dbl_stats, dbl_avg, dbl_min, dbl_max, long_stats, long_avg, long_min, long_max,
         peak_energy, partial_peak_energy, off_peak_energy,
         charge, peak_charge, partial_peak_charge, off_peak_charge, kgco2e
       )
       VALUES (
-        /* 基本資料 */ v_record.truncated_stat_day, v_record.entity_id, v_record.device_id, v_record.stat_type, v_record.device_type, v_record.key_id, 
+        /* 基本資料 */ v_record.truncated_stat_day, v_record.device_id, v_record.stat_type, v_record.device_type, v_record.key_id, 
         /* DBL */ v_record.dbl_stats, v_record.dbl_avg, v_record.dbl_min, v_record.dbl_max, 
         /* LONG */ v_record.long_stats, v_record.long_avg, v_record.long_min, v_record.long_max,
         /* 能源用量(電、水、空氣、瓦斯、蒸氣) */ 
@@ -126,7 +126,7 @@ BEGIN
         v_record.kgco2e
       )
       -- 如果基本資料重複，則進行更新
-      ON CONFLICT(stat_time, entity_id, device_id, key_id, device_type) DO UPDATE SET
+      ON CONFLICT(stat_time, device_id, key_id, device_type) DO UPDATE SET
             dbl_stats = EXCLUDED.dbl_stats,
             dbl_avg = EXCLUDED.dbl_avg,
             dbl_min = EXCLUDED.dbl_min,
@@ -149,7 +149,7 @@ BEGIN
 
 
       IF is_last THEN
-          RAISE NOTICE '  id: %, time: % -> 最後一筆!', v_record.device_id, v_record.truncated_stat_day;
+          IF v_DEBUG THEN RAISE NOTICE '  id: %, time: % -> 最後一筆!', v_record.device_id, v_record.truncated_stat_day;  END IF;
 
           INSERT INTO public.hd_device_stat_day_latest(device_id, device_type, key_id, latest_stat_time, latest_epoch)
           VALUES (
