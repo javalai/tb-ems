@@ -28,7 +28,7 @@ AS $procedure$
             WHEN COALESCE(t2.dbl_v, 0) < COALESCE(LAG(t2.dbl_v) OVER (ORDER BY t2.entity_id, t2.stat_time), COALESCE(t2.dbl_v, 0)) THEN 0
             ELSE COALESCE(t2.dbl_v, 0) - COALESCE(LAG(t2.dbl_v) OVER (ORDER BY t2.entity_id, t2.stat_time), COALESCE(t2.dbl_v, 0)) 
           END AS consumption,
-          ROW_NUMBER() OVER( ORDER BY t2.device_id, t2.device_id, t2.stat_time, t2.stat_type, t2.device_type, t2.key_id) AS row_num
+          ROW_NUMBER() OVER( ORDER BY t2.device_id, t2.stat_time, t2.stat_type, t2.device_type, t2.key_id) AS row_num
         FROM (
           SELECT 
             hd.device_id, hd.factory_id,
@@ -42,7 +42,6 @@ AS $procedure$
           FROM hd_device hd
           JOIN ts_kv tk ON tk.entity_id =  hd.entity_id          
           JOIN hd_key_config hkc ON hkc.device_type = hd.device_type
-          
           LEFT JOIN hd_device_stat_min_latest hdsml ON hdsml.device_id=hd.device_id AND hdsml.device_type = hd.device_type AND hdsml.key_id = hkc.consumption_key_id
           WHERE hd.device_id = p_device_id -- 
             AND tk."key" = hkc.accumulation_key_id
