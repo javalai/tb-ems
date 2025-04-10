@@ -1,4 +1,4 @@
--- DROP PROCEDURE public.sp_update_energy_stat_min_sub_v2(text);
+-- DROP PROCEDURE public.sp_update_energy_stat_min_sub(text);
 
 CREATE OR REPLACE PROCEDURE public.sp_update_energy_stat_min_sub(IN p_device_id text)
  LANGUAGE plpgsql
@@ -25,10 +25,9 @@ AS $procedure$
         SELECT hcp.param_id, hcp.param_name, hcp.float_value AS coeff, hcp.factory_id 
         FROM hd_config_param hcp 
       )
-      SELECT t.entity_id, t.device_id, MAX(t.stat_time) AS stat_time, t.stat_type, t.consumed_energy, t.device_type, t.new_key_id, t.consumed_energy*ce.coeff AS kgco2e
+      SELECT t.device_id, MAX(t.stat_time) AS stat_time, t.stat_type, t.consumed_energy, t.device_type, t.new_key_id, t.consumed_energy*ce.coeff AS kgco2e
       FROM (
-        SELECT 
-          tk.entity_id,
+        SELECT
           hd.device_id,
           hd.factory_id,
           DATE_TRUNC('minute', TO_TIMESTAMP(tk.ts/1000)) AS stat_time,
@@ -51,12 +50,12 @@ AS $procedure$
 --          AND tk.ts <= COALESCE(
 --            (hdsml.latest_epoch                                                  +  EXTRACT(EPOCH FROM INTERVAL '60 days') )*1000,
 --            EXTRACT(EPOCH FROM (TO_TIMESTAMP('2025-01-14' , 'YYYY-MM-DD')  + INTERVAL '60 days'))*1000)
-        ORDER BY tk.entity_id, hd.device_id, stat_time, stat_type, consumed_energy, hd.device_type, new_key_id
+        ORDER BY hd.device_id, stat_time, stat_type, consumed_energy, hd.device_type, new_key_id
       ) t
       JOIN coeffs ce ON ce.factory_id = t.factory_id
       WHERE t.row_num > 1
         AND ce.param_name = '電力碳排係數'
-      GROUP BY t.entity_id, t.device_id, stat_time, t.stat_type, t.consumed_energy, t.device_type, t.new_key_id, ce.coeff;
+      GROUP BY t.device_id, stat_time, t.stat_type, t.consumed_energy, t.device_type, t.new_key_id, ce.coeff;
 
 
   BEGIN
@@ -94,9 +93,8 @@ AS $procedure$
 
         -- 處理當前記錄
         -- 新增 hd_device_statistics_minutely
-        INSERT INTO hd_device_statistics_minutely(entity_id, device_id, stat_time, stat_type, dbl_stats, device_type, key_id, kgco2e)
+        INSERT INTO hd_device_statistics_minutely(device_id, stat_time, stat_type, dbl_stats, device_type, key_id, kgco2e)
         VALUES (
-          v_record.entity_id, 
           v_record.device_id, 
           v_record.stat_time, 
           v_record.stat_type, 
@@ -105,7 +103,7 @@ AS $procedure$
           v_record.new_key_id, 
           v_record.kgco2e
         )
-        ON CONFLICT(stat_time, entity_id, device_id, key_id, device_type) DO UPDATE SET
+        ON CONFLICT(stat_time, device_id, key_id, device_type) DO UPDATE SET
               dbl_stats = EXCLUDED.dbl_stats,
               kgco2e = EXCLUDED.kgco2e
         ;
