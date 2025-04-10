@@ -18,20 +18,20 @@ AS $procedure$
     v_ins_rows NUMERIC := 0;
 
     v_cursor CURSOR FOR 
-      SELECT t.stat_time, t.entity_id, t.device_id, t.stat_type, t.device_type, t.key_id, t.consumption, 
+      SELECT t.stat_time, t.device_id, t.stat_type, t.device_type, t.key_id, t.consumption, 
         CASE
           WHEN hcp.float_value IS NOT NULL THEN t.consumption*hcp.float_value
         END AS kgco2e
       FROM (
-        SELECT t2.entity_id, t2.device_id, t2.factory_id, t2.stat_time, t2.stat_type, t2.device_type, t2.key_id, t2.emission_coeff,
+        SELECT t2.device_id, t2.factory_id, t2.stat_time, t2.stat_type, t2.device_type, t2.key_id, t2.emission_coeff,
           CASE
-            WHEN COALESCE(t2.dbl_v, 0) < COALESCE(LAG(t2.dbl_v) OVER (ORDER BY t2.entity_id, t2.stat_time), COALESCE(t2.dbl_v, 0)) THEN 0
-            ELSE COALESCE(t2.dbl_v, 0) - COALESCE(LAG(t2.dbl_v) OVER (ORDER BY t2.entity_id, t2.stat_time), COALESCE(t2.dbl_v, 0)) 
+            WHEN COALESCE(t2.dbl_v, 0) < COALESCE(LAG(t2.dbl_v) OVER (ORDER BY t2.device_id, t2.stat_time), COALESCE(t2.dbl_v, 0)) THEN 0
+            ELSE COALESCE(t2.dbl_v, 0) - COALESCE(LAG(t2.dbl_v) OVER (ORDER BY t2.device_id, t2.stat_time), COALESCE(t2.dbl_v, 0)) 
           END AS consumption,
-          ROW_NUMBER() OVER( ORDER BY t2.entity_id, t2.device_id, t2.stat_time, t2.stat_type, t2.device_type, t2.key_id) AS row_num
+          ROW_NUMBER() OVER( ORDER BY t2.device_id, t2.device_id, t2.stat_time, t2.stat_type, t2.device_type, t2.key_id) AS row_num
         FROM (
           SELECT 
-            hd.entity_id, hd.device_id, hd.factory_id,
+            hd.device_id, hd.factory_id,
             DATE_TRUNC('minute', TO_TIMESTAMP(tk.ts/1000)) AS stat_time,
             1 AS stat_type, -- 分統計
             hd.device_type,
@@ -47,8 +47,8 @@ AS $procedure$
           WHERE hd.device_id = p_device_id -- 
             AND tk."key" = hkc.accumulation_key_id
             AND tk.ts >= COALESCE(hdsml.latest_epoch, EXTRACT(EPOCH FROM TO_TIMESTAMP('1911-01-01', 'YYYY-MM-DD') )*1000)
-            GROUP BY tk.entity_id, hd.device_id, stat_time, stat_type, hd.device_type, hkc.consumption_key_id, hkc.emission_coeff
-            ORDER BY tk.entity_id, hd.device_id, stat_time, stat_type, hd.device_type, hkc.consumption_key_id
+            GROUP BY hd.device_id, stat_time, stat_type, hd.device_type, hkc.consumption_key_id, hkc.emission_coeff
+            ORDER BY hd.device_id, stat_time, stat_type, hd.device_type, hkc.consumption_key_id
         ) t2  
       ) t
       LEFT JOIN hd_config_param hcp ON hcp.param_name = t.emission_coeff AND hcp.factory_id = t.factory_id
@@ -89,7 +89,6 @@ AS $procedure$
 
 --        RAISE NOTICE '%, %, %, %, %, %, %, %', 
 --          v_record.stat_time, 
---          v_record.entity_id, 
 --          v_record.device_id, 
 --          v_record.stat_type, 
 --          v_record.device_type, 
@@ -98,10 +97,9 @@ AS $procedure$
 --          v_record.kgco2e;
         
         /* 為了統一資料類型以利計算，統計量均存入 dbl_stats */
-        INSERT INTO hd_device_statistics_minutely(stat_time, entity_id, device_id, stat_type, device_type, key_id, dbl_stats, kgco2e)
+        INSERT INTO hd_device_statistics_minutely(stat_time, device_id, stat_type, device_type, key_id, dbl_stats, kgco2e)
         VALUES (
           v_record.stat_time, 
-          v_record.entity_id, 
           v_record.device_id, 
           v_record.stat_type, 
           v_record.device_type, 
@@ -109,7 +107,7 @@ AS $procedure$
           v_record.consumption, 
           v_record.kgco2e
         )
-        ON CONFLICT(stat_time, entity_id, device_id, key_id, device_type) DO UPDATE SET
+        ON CONFLICT(stat_time, device_id, key_id, device_type) DO UPDATE SET
               dbl_stats = EXCLUDED.dbl_stats,
               kgco2e = EXCLUDED.kgco2e
         ;
