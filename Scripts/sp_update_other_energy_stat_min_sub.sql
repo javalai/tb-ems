@@ -25,8 +25,8 @@ AS $procedure$
       FROM (
         SELECT t2.device_id, t2.factory_id, t2.stat_time, t2.stat_type, t2.device_type, t2.key_id, t2.emission_coeff,
           CASE
-            WHEN COALESCE(t2.dbl_v, 0) < COALESCE(LAG(t2.dbl_v) OVER (ORDER BY t2.device_id, t2.stat_time), COALESCE(t2.dbl_v, 0)) THEN 0
-            ELSE COALESCE(t2.dbl_v, 0) - COALESCE(LAG(t2.dbl_v) OVER (ORDER BY t2.device_id, t2.stat_time), COALESCE(t2.dbl_v, 0)) 
+            WHEN COALESCE(t2.dbl_v, 0) < COALESCE(LAG(t2.dbl_v) OVER (ORDER BY t2.entity_id, t2.stat_time), COALESCE(t2.dbl_v, 0)) THEN 0
+            ELSE COALESCE(t2.dbl_v, 0) - COALESCE(LAG(t2.dbl_v) OVER (ORDER BY t2.entity_id, t2.stat_time), COALESCE(t2.dbl_v, 0)) 
           END AS consumption,
           ROW_NUMBER() OVER( ORDER BY t2.device_id, t2.device_id, t2.stat_time, t2.stat_type, t2.device_type, t2.key_id) AS row_num
         FROM (
