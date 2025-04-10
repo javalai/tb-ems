@@ -22,7 +22,6 @@ AS $procedure$
         FROM hd_config_param hcp 
       )
       SELECT t.truncated_stat_time AS stat_time,
-        t.entity_id,
         t.device_id, 
         t.stat_type,
         t.device_type,
@@ -53,7 +52,6 @@ AS $procedure$
       FROM (
         SELECT 
           DATE_TRUNC('hour', hdsm.stat_time) AS truncated_stat_time,
-          hdsm.entity_id,
           hdsm.device_id,
           hd.factory_id,
           2 AS stat_type, -- 時統計
@@ -84,23 +82,9 @@ AS $procedure$
           AND hdsm.device_id = p_device_id
           AND hdsm.stat_time > COALESCE (latest.latest_stat_time, TO_TIMESTAMP('1911-01-01', 'YYYY-MM-DD'))
         GROUP BY 
-          truncated_stat_time,
-          hdsm.entity_id,
-          hdsm.device_id, 
-          hd.factory_id,
-          stat_type, -- 時統計
-          hdsm.device_type,
-          hdsm.key_id,
-          kd."key",
-          latest.latest_stat_time
+          truncated_stat_time, hdsm.device_id,hd.factory_id, stat_type, hdsm.device_type, hdsm.key_id, kd."key", latest.latest_stat_time
         ORDER BY 
-          truncated_stat_time,
-          hdsm.entity_id,
-          hdsm.device_id, 
-          stat_type, -- 時統計
-          hdsm.device_type,
-          hdsm.key_id,
-          kd."key"
+          truncated_stat_time, hdsm.device_id, stat_type, hdsm.device_type, hdsm.key_id
       ) t
       JOIN coeffs ce ON ce.factory_id = t.factory_id
       WHERE ce.param_name = '電力碳排係數'
@@ -136,13 +120,13 @@ AS $procedure$
             is_last := TRUE;
         END IF;
 
-        INSERT INTO hd_device_statistics_hourly(stat_time, entity_id, device_id, stat_type, device_type, key_id, 
+        INSERT INTO hd_device_statistics_hourly(stat_time, device_id, stat_type, device_type, key_id, 
                                                  dbl_stats, long_stats, charge, period_type,
                                                  long_avg, long_min, long_max, dbl_avg, dbl_min, dbl_max, kgco2e)
-        VALUES (v_record.stat_time, v_record.entity_id, v_record.device_id, v_record.stat_type, v_record.device_type, v_record.key_id, 
+        VALUES (v_record.stat_time, v_record.device_id, v_record.stat_type, v_record.device_type, v_record.key_id, 
                 v_record.dbl_stats, v_record.long_stats, v_record.charge, v_record.period_type,
                 v_record.long_avg, v_record.long_min, v_record.long_max, v_record.dbl_avg, v_record.dbl_min, v_record.dbl_max, v_record.kgco2e)
-        ON CONFLICT(stat_time, entity_id, device_id, key_id, device_type) DO UPDATE SET
+        ON CONFLICT(stat_time, device_id, key_id, device_type) DO UPDATE SET
               dbl_stats = EXCLUDED.dbl_stats,
               long_stats = EXCLUDED.long_stats,
               charge = EXCLUDED.charge,
