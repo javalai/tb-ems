@@ -135,24 +135,39 @@ BEGIN
 
       v_ins_rows := v_ins_rows + 1;
 
+      -- 2025/05/23 Lawrence 
+      -- 因為瞬間量統計一次會選取多種瞬間量，以至於is_last並非真的最後一筆，所以改為每筆更新一次hd_device_stat_day_latest
+      -- 未來再想辦法優化
+      -- IF is_last THEN
+      --   RAISE NOTICE '  id: %, time: % -> 最後一筆!', v_record.device_id, v_record.truncated_stat_day;
+      --
+      --   INSERT INTO public.hd_device_stat_day_latest(device_id, device_type, key_id, latest_stat_time, latest_epoch)
+      -- VALUES (
+      --    v_record.device_id, 
+      --    v_record.device_type, 
+      --    v_record.avg_key_id,
+      --    v_record.truncated_stat_day + INTERVAL '7 hours 59 minutes 59 seconds',
+      --    EXTRACT(EPOCH FROM v_record.truncated_stat_day + INTERVAL '7 hours 59 minutes 59 seconds')*1000
+      --  )
+      --  ON CONFLICT(device_id, device_type, key_id) DO UPDATE SET
+      --    latest_stat_time = EXCLUDED.latest_stat_time,
+      --    latest_epoch = EXCLUDED.latest_epoch
+      --  ;
+      --
+      -- END IF;
 
-      IF is_last THEN
-          RAISE NOTICE '  id: %, time: % -> 最後一筆!', v_record.device_id, v_record.truncated_stat_day;
-
-          INSERT INTO public.hd_device_stat_day_latest(device_id, device_type, key_id, latest_stat_time, latest_epoch)
-          VALUES (
-            v_record.device_id, 
-            v_record.device_type, 
-            v_record.avg_key_id,
-            v_record.truncated_stat_day + INTERVAL '7 hours 59 minutes 59 seconds',
-            EXTRACT(EPOCH FROM v_record.truncated_stat_day + INTERVAL '7 hours 59 minutes 59 seconds')*1000
-          )
-          ON CONFLICT(device_id, device_type, key_id) DO UPDATE SET
-            latest_stat_time = EXCLUDED.latest_stat_time,
-            latest_epoch = EXCLUDED.latest_epoch
-          ;
-
-      END IF;
+      INSERT INTO public.hd_device_stat_day_latest(device_id, device_type, key_id, latest_stat_time, latest_epoch)
+      VALUES (
+          v_record.device_id, 
+          v_record.device_type, 
+          v_record.avg_key_id,
+          v_record.truncated_stat_day + INTERVAL '7 hours 59 minutes 59 seconds',
+          EXTRACT(EPOCH FROM v_record.truncated_stat_day + INTERVAL '7 hours 59 minutes 59 seconds')*1000
+      )
+      ON CONFLICT(device_id, device_type, key_id) DO UPDATE SET
+        latest_stat_time = EXCLUDED.latest_stat_time,
+        latest_epoch = EXCLUDED.latest_epoch
+      ;
 
       -- 如果是最後一筆，結束迴圈
       IF is_last THEN
@@ -165,7 +180,7 @@ BEGIN
   END LOOP;    
 
   SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
-  RAISE NOTICE '  新增 % 的時統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
+  RAISE NOTICE '  新增 % 的瞬間量日統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
 
   EXCEPTION
     WHEN OTHERS THEN
