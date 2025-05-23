@@ -51,7 +51,6 @@ DECLARE
     SELECT
       -- st.latest_stat_time,
       HD_DATE_TRUNC(TO_TIMESTAMP(tk.ts/1000)) AS truncated_stat_day,
-      -- tk.entity_id,
       hd.device_id, 
       3 AS stat_type, -- 日統計
       hd.device_type,
@@ -75,7 +74,7 @@ DECLARE
     WHERE hd.device_id = p_device_id --'P22_1'
       AND hd.device_type IN ('E', 'W', 'G', 'A', 'S')
       AND kd."key" IN (
-        /* 電力 */ 'Active_Power', 'Reactive_Power', 'HZ', 'AVG_Voltage', 'AVG_Current', 'AVG_PF',
+        /* 電力 */ 'AVG_Active_Power', 'AVG_Active_Power', 'AVG_HZ', 'AVG_Voltage', 'AVG_Current', 'AVG_PF',
         /* 其他 */ 'water_flow_rate', 'air_flow_rate', 'gas_flow_rate', 'steam_flow_rate'
       )
       AND tk.ts > EXTRACT(EPOCH FROM COALESCE(st.latest_stat_time, TO_TIMESTAMP('2025-02-01','YYYY-MM-DD')))*1000
