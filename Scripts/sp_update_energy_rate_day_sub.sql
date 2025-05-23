@@ -104,7 +104,7 @@ BEGIN
   
   -- 若第一筆沒有資料，直接結束
   IF NOT FOUND THEN
-      RAISE NOTICE '表中無資料';
+      RAISE NOTICE '表中無 % 的資料', p_device_id;
       CLOSE v_cursor;
       RETURN;
   END IF;
