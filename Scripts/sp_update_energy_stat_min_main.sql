@@ -6,7 +6,7 @@ AS $procedure$
 
   DECLARE 
     v_device_cursor CURSOR FOR
-      SELECT hd.device_id, hd.entity_id, hdsml.latest_stat_time
+      SELECT hd.device_id, hdsml.latest_stat_time
       FROM hd_device hd
       LEFT JOIN hd_device_stat_min_latest hdsml ON hdsml.device_id=hd.device_id AND hdsml.device_type = hd.device_type
       WHERE hd.entity_id IS NOT NULL 
@@ -18,7 +18,6 @@ AS $procedure$
       ;
     v_device_record RECORD;
     v_device_id VARCHAR(50);
-    v_entity_id UUID;
 
     v_overall_start_time TIMESTAMP;
     v_overall_duration FLOAT;
@@ -32,15 +31,14 @@ AS $procedure$
 
     -- Open cursor
     OPEN v_device_cursor;
+
     -- Fetch rows and return
     LOOP
 
       FETCH NEXT FROM v_device_cursor INTO v_device_record;
       EXIT WHEN NOT FOUND;
+
       v_device_id = v_device_record.device_id;
-      v_entity_id = v_device_record.entity_id;
-      -- RAISE NOTICE 'v_device_id: %', v_device_id;
-      -- RAISE NOTICE 'v_entity_id: %', v_entity_id;
 
       SELECT CLOCK_TIMESTAMP() INTO v_start_time;
       SELECT 0 INTO v_duration;
@@ -50,14 +48,8 @@ AS $procedure$
       -- 子交易塊處理個別設備
       BEGIN
 
---        SELECT CLOCK_TIMESTAMP() INTO v_start_time;
---        SELECT 0 INTO v_duration;
-
         PERFORM DBLINK('host=/var/run/postgresql port=5432 user=postgres password=kenda2415@ dbname=thingsboard',
-          FORMAT('CALL public.sp_update_energy_stat_min_sub_v2( ''%s'' )', v_device_id));
-
---        SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
---        RAISE NOTICE '處理 % 的資料，計時 % 秒', v_device_id, v_duration;
+          FORMAT('CALL public.sp_update_energy_stat_min_sub( ''%s'' )', v_device_id));
 
       SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
       RAISE NOTICE '% 的分統計資料已處理完成，計時 % 秒！...', v_device_id, v_duration;
