@@ -6,20 +6,16 @@ AS $procedure$
 
   DECLARE 
     v_device_cursor CURSOR FOR
-      SELECT hd.device_id, hd.entity_id, hdsml.latest_stat_time
+      SELECT hd.device_id
       FROM hd_device hd
       JOIN hd_key_config hkc ON hkc.device_type = hd.device_type
-      LEFT JOIN hd_device_stat_min_latest hdsml ON hdsml.device_id=hd.device_id AND hdsml.device_type = hd.device_type
       WHERE hd.entity_id IS NOT NULL 
         AND hd.device_type <> 'E'
         AND hd.factory_id NOT IN ('KC', 'KT')
-        AND hdsml.key_id = hkc.consumption_key_id
-        AND hdsml.latest_stat_time < (CURRENT_TIMESTAMP - INTERVAL '30 minutes')
       ORDER BY hd.device_id
       ;
     v_device_record RECORD;
     v_device_id VARCHAR(50);
-    v_entity_id UUID;
 
     v_overall_start_time TIMESTAMP;
     v_overall_duration FLOAT;
@@ -33,13 +29,13 @@ AS $procedure$
 
     -- Open cursor
     OPEN v_device_cursor;
+
     -- Fetch rows and return
     LOOP
 
       FETCH NEXT FROM v_device_cursor INTO v_device_record;
       EXIT WHEN NOT FOUND;
       v_device_id = v_device_record.device_id;
-      v_entity_id = v_device_record.entity_id;
 
       SELECT CLOCK_TIMESTAMP() INTO v_start_time;
       SELECT 0 INTO v_duration;
