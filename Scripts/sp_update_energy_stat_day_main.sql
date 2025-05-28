@@ -23,7 +23,8 @@ BEGIN
 
   -- 開啟游標
   OPEN v_device_cursor;
-  -- Fetch rows and return
+
+  -- 依序處理
   LOOP
     FETCH NEXT FROM v_device_cursor INTO v_device_record;
     EXIT WHEN NOT FOUND;
