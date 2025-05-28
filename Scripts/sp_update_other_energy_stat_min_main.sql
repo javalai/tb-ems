@@ -8,7 +8,6 @@ AS $procedure$
     v_device_cursor CURSOR FOR
       SELECT hd.device_id
       FROM hd_device hd
-      JOIN hd_key_config hkc ON hkc.device_type = hd.device_type
       WHERE hd.entity_id IS NOT NULL 
         AND hd.device_type <> 'E'
         AND hd.factory_id NOT IN ('KC', 'KT')
