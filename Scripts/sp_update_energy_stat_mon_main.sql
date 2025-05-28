@@ -10,6 +10,7 @@ AS $procedure$
       FROM hd_device hd
       WHERE hd.entity_id IS NOT NULL 
         AND hd.device_type = 'E'
+        AND hd.factory_id NOT IN ('KC','KT')
       ORDER BY hd.device_id
       ;
     v_device_record RECORD;
@@ -35,14 +36,13 @@ AS $procedure$
                     peak_energy, partial_peak_energy, off_peak_energy,
                     charge, peak_charge, partial_peak_charge, off_peak_charge, kgco2e)
       WITH epochs AS (
-        SELECT hdsm.device_id, hdsm.key_id,
+        SELECT hd.device_id, hdk.key_id,
           MAX(hdsm.stat_time) AS latest_stat_time
-        FROM hd_device_statistics_monthly hdsm
-        JOIN key_dictionary kd ON kd.key_id = hdsm.key_id
-        WHERE hdsm.device_type = 'E'
-          AND kd."key" IN ('ConsumedEnergy', 'AVG_Active_Power', 'AVG_Reactive_Power',
-                                 'AVG_HZ', 'AVG_Voltage', 'AVG_Current', 'AVG_PF')
-        GROUP BY hdsm.device_id, hdsm.key_id
+        FROM hd_device hd
+        JOIN hd_device_keys hdk  ON hdk.device_type = hd.device_type
+        LEFT JOIN hd_device_statistics_monthly hdsm ON hdsm.device_id = hd.device_id
+        WHERE hd.device_type = 'E'
+        GROUP BY hd.device_id, hdk.key_id
       )
       SELECT 
         DATE_TRUNC('month', hdsd.stat_time) AS truncated_stat_time,
@@ -51,7 +51,7 @@ AS $procedure$
         hdsd.device_type,
         hdsd.key_id,
         CASE
-          WHEN kd."key" = 'ConsumedEnergy' THEN SUM(hdsd.dbl_stats)
+          WHEN hdk.key_type = 'C' THEN SUM(hdsd.dbl_stats)
           ELSE AVG(hdsd.dbl_stats) -- 除了耗電量，其他都是平均
         END AS dbl_stats,
         SUM(hdsd.peak_energy) AS peak_energy,
@@ -63,15 +63,17 @@ AS $procedure$
         SUM(hdsd.off_peak_charge) AS off_peak_charge,
         SUM(hdsd.kgco2e) AS kgco2e
       FROM hd_device_statistics_daily hdsd
-      JOIN key_dictionary kd ON kd.key_id = hdsd.key_id
+      JOIN hd_device_keys hdk  ON hdk.device_type = hdsd.device_type
+      -- JOIN key_dictionary kd ON kd.key_id = hdsd.key_id
       LEFT JOIN epochs ep ON ep.device_id = hdsd.device_id AND ep.key_id = hdsd.key_id 
       WHERE hdsd.device_type ='E'
-        AND kd."key" IN ('ConsumedEnergy', 'AVG_Active_Power', 
-                        'AVG_Reactive_Power', 'AVG_HZ', 'AVG_Voltage', 'AVG_Current', 'AVG_PF')
+        AND hdsd.key_id = hdk.key_id
+--        AND kd."key" IN ('ConsumedEnergy', 'AVG_Active_Power', 
+--                        'AVG_Reactive_Power', 'AVG_HZ', 'AVG_Voltage', 'AVG_Current', 'AVG_PF')
         AND hdsd.device_id = v_device_id
         AND hdsd.stat_time > COALESCE (ep.latest_stat_time + INTERVAL '1 month' - INTERVAL '1 second', TO_TIMESTAMP('1911-01-01', 'YYYY-MM-DD'))
       GROUP BY 
-        truncated_stat_time, hdsd.device_id, stat_type4, hdsd.device_type, hdsd.key_id, kd."key"
+        truncated_stat_time, hdsd.device_id, stat_type4, hdsd.device_type, hdsd.key_id, hdk."key_type"
       ORDER BY 
         truncated_stat_time, hdsd.device_id, stat_type4, hdsd.device_type, hdsd.key_id
 --      ON CONFLICT(stat_time, device_id, key_id, device_type) DO UPDATE SET
