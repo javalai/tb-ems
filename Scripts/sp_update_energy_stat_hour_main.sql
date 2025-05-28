@@ -14,25 +14,20 @@ AS $procedure$
       ;
     v_device_record RECORD;
     v_device_id varchar(50);
-    v_entity_id uuid;
 
     v_start_time TIMESTAMP;
     v_duration FLOAT;
 
-    ins_rows numeric;
-
   BEGIN
     
-  -- Open cursor
+    -- 開啟游標
     OPEN v_device_cursor;
-    -- Fetch rows and return
+
+    -- 依序處理
     LOOP
       FETCH NEXT FROM v_device_cursor INTO v_device_record;
       EXIT WHEN NOT FOUND;
       v_device_id = v_device_record.device_id;
-      v_entity_id = v_device_record.entity_id;
-      -- RAISE NOTICE 'v_device_id: %', v_device_id;
-      -- RAISE NOTICE 'v_entity_id: %', v_entity_id;
      
       RAISE NOTICE '開始處理 % 的時統計資料...', v_device_id;
 
@@ -56,7 +51,7 @@ AS $procedure$
 
     END LOOP;
 
-    -- Close cursor
+    -- 關閉游標
     CLOSE v_device_cursor;
 
     -- 捕捉異常並記錄錯誤，不中斷主迴圈

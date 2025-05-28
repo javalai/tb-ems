@@ -24,15 +24,7 @@ AS $procedure$
         3 AS stat_type, -- 日統計
         hd.device_type,
         hkc.rate_key_id AS key_id,
-        COALESCE(
---        CASE 
---          WHEN kd."key" IN ('water_flow_rate', 'gas_flow_rate', 'air_flow_rate', 'steam_flow_rate') 
---            THEN AVG(hdsm.dbl_stats) -- 流量應該是浮點數取平均
---          WHEN kd."key" IN ('water_consumed_volume', 'gas_consumed_volume', 'air_consumed_volume', 'steam_consumed_volume')
---            THEN SUM(hdsm.dbl_stats) -- 耗用量應該是浮點數取加總
---          ELSE 0
---        END, 0) AS dbl_stats,
-        AVG(tk.dbl_v), 0) AS dbl_stats
+        COALESCE(AVG(tk.dbl_v), 0) AS dbl_stats
       FROM hd_device hd
       JOIN ts_kv tk ON tk.entity_id = hd.entity_id
       JOIN hd_key_config hkc ON hkc.device_type = hd.device_type
@@ -51,7 +43,7 @@ AS $procedure$
 
     RAISE NOTICE '準備新增非電儀表 % 的流量時統計資料...', p_device_id;
 
-    -- 打開 Cursor
+    -- 打開游標
     OPEN v_cursor;
 
     -- 先讀取第一筆

@@ -47,9 +47,6 @@ AS $procedure$
           AND kd."key" IN ('Energy')
           AND hd.device_id = p_device_id
           AND tk.ts > COALESCE(hdsml.latest_epoch, EXTRACT(EPOCH FROM TO_TIMESTAMP('1911-01-01', 'YYYY-MM-DD') )*1000)
---          AND tk.ts <= COALESCE(
---            (hdsml.latest_epoch                                                  +  EXTRACT(EPOCH FROM INTERVAL '60 days') )*1000,
---            EXTRACT(EPOCH FROM (TO_TIMESTAMP('2025-01-14' , 'YYYY-MM-DD')  + INTERVAL '60 days'))*1000)
         ORDER BY hd.device_id, stat_time, stat_type, consumed_energy, hd.device_type, new_key_id
       ) t
       JOIN coeffs ce ON ce.factory_id = t.factory_id
@@ -68,7 +65,7 @@ AS $procedure$
     SELECT key_id INTO v_energy_key_id FROM key_dictionary WHERE "key"='Energy';
     SELECT key_id INTO v_consumed_energy_key_id FROM key_dictionary WHERE "key"='ConsumedEnergy';
 
-    -- 打開 Cursor
+    -- 打開游標
     OPEN v_cursor;
 
     -- 先讀取第一筆
@@ -140,6 +137,7 @@ AS $procedure$
 
     END LOOP;
 
+    -- 計算執行時間
     SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
     -- GET DIAGNOSTICS ins_rows = ROW_COUNT;
     RAISE NOTICE '  新增 % 的分統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;

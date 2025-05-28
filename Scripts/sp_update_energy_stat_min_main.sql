@@ -6,14 +6,11 @@ AS $procedure$
 
   DECLARE 
     v_device_cursor CURSOR FOR
-      SELECT hd.device_id, hdsml.latest_stat_time
+      SELECT hd.device_id
       FROM hd_device hd
-      LEFT JOIN hd_device_stat_min_latest hdsml ON hdsml.device_id=hd.device_id AND hdsml.device_type = hd.device_type
       WHERE hd.entity_id IS NOT NULL 
         AND hd.device_type = 'E'
         AND hd.factory_id NOT IN ('KC', 'KT')
-        AND hdsml.key_id = 142
-        AND hdsml.latest_stat_time < (CURRENT_TIMESTAMP - INTERVAL '1 hour')
       ORDER BY hd.device_id
       ;
     v_device_record RECORD;
@@ -29,10 +26,10 @@ AS $procedure$
     SELECT CLOCK_TIMESTAMP() INTO v_overall_start_time;
     SELECT 0 INTO v_overall_duration;
 
-    -- Open cursor
+    -- 開啟游標
     OPEN v_device_cursor;
 
-    -- Fetch rows and return
+    -- 依序處理
     LOOP
 
       FETCH NEXT FROM v_device_cursor INTO v_device_record;
@@ -43,7 +40,7 @@ AS $procedure$
       SELECT CLOCK_TIMESTAMP() INTO v_start_time;
       SELECT 0 INTO v_duration;
      
-      RAISE NOTICE '開始處理 % 的分統計資料...', v_device_id;
+      RAISE NOTICE '開始處理 % 的耗用量分統計資料...', v_device_id;
       
       -- 子交易塊處理個別設備
       BEGIN
@@ -52,7 +49,7 @@ AS $procedure$
           FORMAT('CALL public.sp_update_energy_stat_min_sub( ''%s'' )', v_device_id));
 
       SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
-      RAISE NOTICE '% 的分統計資料已處理完成，計時 % 秒！...', v_device_id, v_duration;
+      RAISE NOTICE '% 的耗用量分統計資料已處理完成，計時 % 秒！...', v_device_id, v_duration;
 
       -- 捕捉異常並記錄錯誤，不中斷主迴圈
       EXCEPTION
@@ -62,7 +59,7 @@ AS $procedure$
       END;
     END LOOP;
 
-    
+    -- 關閉游標
     CLOSE v_device_cursor;
 
     SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_overall_start_time)) INTO v_overall_duration;

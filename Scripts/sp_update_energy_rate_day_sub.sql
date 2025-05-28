@@ -54,13 +54,6 @@ DECLARE
       hd.device_id, 
       3 AS stat_type, -- 日統計
       hd.device_type,
-      -- tk."key",
---      CASE 
---        WHEN tk."key" = 153 /* Reactive_Power */  THEN 628 /* AVG_Reactive_Power */
---        WHEN tk."key" = 158 /* HZ */ THEN 629 /* AVG_HZ */
---        WHEN tk."key" = 630 /*Active_Power*/ THEN 627 /* AVG_Active_Power */
---        ELSE tk."key"
---      END AS rate_key_id,
       hakc.avg_key_id,
       AVG(tk.dbl_v) AS dbl_stats,
       MIN(tk.dbl_v) AS dbl_min,
@@ -96,7 +89,7 @@ BEGIN
 
   IF v_DEBUG THEN RAISE NOTICE '準備新增 % 的能資源瞬間量日統計資料...', p_device_id; END IF;
 
-  -- 打開 Cursor
+  -- 打開游標
   OPEN v_cursor;
 
   -- 先讀取第一筆

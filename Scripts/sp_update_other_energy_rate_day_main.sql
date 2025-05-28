@@ -18,19 +18,18 @@ AS $procedure$
     v_start_time TIMESTAMP;
     v_duration FLOAT;
 
-    ins_rows numeric;
-
   BEGIN
     
-  -- Open cursor
+    -- 開啟游標
     OPEN v_device_cursor;
-    -- Fetch rows and return
+
+    -- 依序處理
     LOOP
       FETCH NEXT FROM v_device_cursor INTO v_device_record;
       EXIT WHEN NOT FOUND;
       v_device_id = v_device_record.device_id;
      
-      RAISE NOTICE '開始處理非電能源 % 的流量時統計資料...', v_device_id;
+      RAISE NOTICE '開始處理非電能源 % 的瞬間量時統計資料...', v_device_id;
 
       BEGIN
       
@@ -42,7 +41,7 @@ AS $procedure$
 
         SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
 
-        RAISE NOTICE '非電能源 % 的流量時統計資料已處理完成，計時 % 秒', v_device_id, v_duration;
+        RAISE NOTICE '非電能源 % 的瞬間量時統計資料已處理完成，計時 % 秒', v_device_id, v_duration;
 
       EXCEPTION
         WHEN query_canceled THEN
@@ -52,7 +51,7 @@ AS $procedure$
 
     END LOOP;
 
-    -- Close cursor
+    -- 關閉游標
     CLOSE v_device_cursor;
 
     -- 捕捉異常並記錄錯誤，不中斷主迴圈

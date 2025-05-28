@@ -97,7 +97,7 @@ AS $procedure$
 
     RAISE NOTICE '準備新增 % 的時統計資料...', p_device_id;
 
-    -- 打開 Cursor
+    -- 打開游標
     OPEN v_cursor;
 
     -- 先讀取第一筆

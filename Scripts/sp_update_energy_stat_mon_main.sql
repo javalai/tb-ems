@@ -20,16 +20,16 @@ AS $procedure$
     upd_rows numeric;
   BEGIN
 
-  -- Open cursor
+    -- 開啟游標
     OPEN v_device_cursor;
   
-    -- Fetch rows and return
+    -- 依序處理
     LOOP
       FETCH NEXT FROM v_device_cursor INTO v_device_record;
       EXIT WHEN NOT FOUND;
       v_device_id = v_device_record.device_id;
      
-      RAISE NOTICE '開始處理 % 的統計資料...', v_device_id;
+      RAISE NOTICE '開始處理 % 的月統計資料...', v_device_id;
 
       -- 以下處理新的月統計資料
       INSERT INTO hd_device_statistics_monthly (stat_time, device_id, stat_type, device_type, key_id, dbl_stats, 
@@ -64,12 +64,9 @@ AS $procedure$
         SUM(hdsd.kgco2e) AS kgco2e
       FROM hd_device_statistics_daily hdsd
       JOIN hd_device_keys hdk  ON hdk.device_type = hdsd.device_type
-      -- JOIN key_dictionary kd ON kd.key_id = hdsd.key_id
       LEFT JOIN epochs ep ON ep.device_id = hdsd.device_id AND ep.key_id = hdsd.key_id 
       WHERE hdsd.device_type ='E'
         AND hdsd.key_id = hdk.key_id
---        AND kd."key" IN ('ConsumedEnergy', 'AVG_Active_Power', 
---                        'AVG_Reactive_Power', 'AVG_HZ', 'AVG_Voltage', 'AVG_Current', 'AVG_PF')
         AND hdsd.device_id = v_device_id
         AND hdsd.stat_time > COALESCE (ep.latest_stat_time + INTERVAL '1 month' - INTERVAL '1 second', TO_TIMESTAMP('1911-01-01', 'YYYY-MM-DD'))
       GROUP BY 
@@ -93,7 +90,7 @@ AS $procedure$
 
     END LOOP;
 
-    -- Close cursor
+    -- 關閉游標
     CLOSE v_device_cursor;  
 
     -- 捕捉異常並記錄錯誤，不中斷主迴圈

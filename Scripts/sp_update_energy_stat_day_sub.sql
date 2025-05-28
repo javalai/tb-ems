@@ -77,16 +77,16 @@ DECLARE
 
 BEGIN
   
-  IF v_DEBUG THEN RAISE NOTICE '開始處理 % 的能資源耗用量日統計資料...', p_device_id; END IF;
+  IF v_DEBUG THEN RAISE NOTICE '開始處理 % 的耗用量日統計資料...', p_device_id; END IF;
 
   -- 通常最後一筆時統計資料，因為時間差的關係，有可能不完整，需要重新統計
   -- 以下處理新的日統計資料
   SELECT CLOCK_TIMESTAMP() INTO v_start_time;
   SELECT 0 INTO v_duration;
 
-  IF v_DEBUG THEN RAISE NOTICE '準備新增 % 的能資源耗用量日統計資料...', p_device_id; END IF;
+  IF v_DEBUG THEN RAISE NOTICE '準備新增 % 的耗用量日統計資料...', p_device_id; END IF;
 
-  -- 打開 Cursor
+  -- 打開游標
   OPEN v_cursor;
 
   -- 先讀取第一筆
@@ -177,7 +177,7 @@ BEGIN
   END LOOP;    
 
   SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
-  RAISE NOTICE '  新增 % 的時統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
+  RAISE NOTICE '  新增 % 的耗用量日統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
 
   EXCEPTION
     WHEN OTHERS THEN

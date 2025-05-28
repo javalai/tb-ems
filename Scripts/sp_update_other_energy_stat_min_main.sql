@@ -26,10 +26,10 @@ AS $procedure$
     SELECT CLOCK_TIMESTAMP() INTO v_overall_start_time;
     SELECT 0 INTO v_overall_duration;
 
-    -- Open cursor
+    -- 打開游標
     OPEN v_device_cursor;
 
-    -- Fetch rows and return
+    -- 依序處理
     LOOP
 
       FETCH NEXT FROM v_device_cursor INTO v_device_record;

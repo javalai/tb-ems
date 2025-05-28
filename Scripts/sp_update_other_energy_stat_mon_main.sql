@@ -20,10 +20,10 @@ AS $procedure$
     affected_rows numeric;
   BEGIN
   
-  -- 開啟 cursor
+  -- 開啟游標
   OPEN v_device_cursor;
   
-  -- Fetch rows and return
+  -- 依序處理
   LOOP
     FETCH NEXT FROM v_device_cursor INTO v_device_record;
     EXIT WHEN NOT FOUND;
@@ -94,7 +94,7 @@ AS $procedure$
 
   END LOOP;
 
-  -- Close cursor
+  -- 關閉游標
   CLOSE v_device_cursor;
 
   END;
