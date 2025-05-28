@@ -6,20 +6,18 @@ AS $procedure$
 
   DECLARE 
     v_device_cursor CURSOR FOR
-      SELECT hd.device_id, hd.entity_id 
+      SELECT hd.device_id
       FROM hd_device hd
       WHERE hd.entity_id IS NOT NULL 
         AND hd.device_type <> 'E'
         AND hd.factory_id <> 'KC' AND hd.factory_id <> 'KT'
       ;
+  
     v_device_record RECORD;
     v_device_id varchar(50);
-    v_entity_id uuid;
 
     v_start_time TIMESTAMP;
     v_duration FLOAT;
-
-    ins_rows numeric;
 
   BEGIN
     
@@ -30,9 +28,6 @@ AS $procedure$
       FETCH NEXT FROM v_device_cursor INTO v_device_record;
       EXIT WHEN NOT FOUND;
       v_device_id = v_device_record.device_id;
-      v_entity_id = v_device_record.entity_id;
-      -- RAISE NOTICE 'v_device_id: %', v_device_id;
-      -- RAISE NOTICE 'v_entity_id: %', v_entity_id;
      
       RAISE NOTICE '開始處理非電能源 % 的時統計資料...', v_device_id;
 
