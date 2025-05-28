@@ -89,7 +89,7 @@ AS $procedure$
       ;
   
       GET DIAGNOSTICS ins_rows = ROW_COUNT;
-      RAISE NOTICE '  新增 % 的統計資料，共新增 % 筆。', v_device_id, ins_rows;
+      RAISE NOTICE '  新增 % 的月統計資料，共新增 % 筆。', v_device_id, ins_rows;
 
     END LOOP;
 
