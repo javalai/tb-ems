@@ -19,15 +19,17 @@ DECLARE
   v_device_id VARCHAR(50);
 
 BEGIN
-  -- Open cursor
+
+  -- 開啟游標
   OPEN v_device_cursor;
-  -- Fetch rows and return
+  
+  -- 依序處理
   LOOP
     FETCH NEXT FROM v_device_cursor INTO v_device_record;
     EXIT WHEN NOT FOUND;
     v_device_id = v_device_record.device_id;
      
-    RAISE NOTICE '開始處理 % 的日統計資料...', v_device_id;
+    RAISE NOTICE '開始處理 % 的瞬間量日統計資料...', v_device_id;
 
     BEGIN
 
@@ -41,11 +43,11 @@ BEGIN
 
   END LOOP;
 
-  -- Close cursor
+  -- 關閉游標
   CLOSE v_device_cursor;
 
   -- 捕捉異常並記錄錯誤，不中斷主迴圈
-  RAISE NOTICE '所有電表的日統計處理完成。';
+  RAISE NOTICE '所有電表的瞬間量日統計處理完成。';
 
 END;
 $procedure$
