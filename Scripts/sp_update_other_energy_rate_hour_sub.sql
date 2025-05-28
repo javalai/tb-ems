@@ -23,15 +23,7 @@ AS $procedure$
         2 AS stat_type, -- 時統計
         hd.device_type,
         hkc.rate_key_id AS key_id,
-        COALESCE(
---        CASE 
---          WHEN kd."key" IN ('water_flow_rate', 'gas_flow_rate', 'air_flow_rate', 'steam_flow_rate') 
---            THEN AVG(hdsm.dbl_stats) -- 流量應該是浮點數取平均
---          WHEN kd."key" IN ('water_consumed_volume', 'gas_consumed_volume', 'air_consumed_volume', 'steam_consumed_volume')
---            THEN SUM(hdsm.dbl_stats) -- 耗用量應該是浮點數取加總
---          ELSE 0
---        END, 0) AS dbl_stats,
-        AVG(tk.dbl_v), 0) AS dbl_stats
+        COALESCE(AVG(tk.dbl_v), 0) AS dbl_stats
       FROM hd_device hd
       JOIN ts_kv tk ON tk.entity_id = hd.entity_id
       JOIN hd_key_config hkc ON hkc.device_type = hd.device_type
@@ -48,9 +40,9 @@ AS $procedure$
     SELECT CLOCK_TIMESTAMP() INTO v_start_time;
     SELECT 0 INTO v_duration;
 
-    RAISE NOTICE '準備新增非電儀表 % 的流量時統計資料...', p_device_id;
+    RAISE NOTICE '準備新增非電能源 % 的瞬間量時統計資料...', p_device_id;
 
-    -- 打開 Cursor
+    -- 開啟游標
     OPEN v_cursor;
 
     -- 先讀取第一筆
@@ -112,7 +104,7 @@ AS $procedure$
     END LOOP;    
 
     SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
-    RAISE NOTICE '  新增 % 的流量時統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
+    RAISE NOTICE '  新增 % 的瞬間量時統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
 
     EXCEPTION
           WHEN OTHERS THEN

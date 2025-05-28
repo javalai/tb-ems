@@ -19,15 +19,17 @@ AS $procedure$
 
   BEGIN
 
-  -- Open cursor
+    -- 開啟游標
     OPEN v_device_cursor;
-    -- Fetch rows and return
+    
+    -- 依序處理
     LOOP
       FETCH NEXT FROM v_device_cursor INTO v_device_record;
       EXIT WHEN NOT FOUND;
+
       v_device_id = v_device_record.device_id;
      
-      RAISE NOTICE '開始處理 % 的年統計資料...', v_device_id;
+      RAISE NOTICE '開始處理 % 的耗用量年統計資料...', v_device_id;
       INSERT INTO hd_device_statistics_yearly (stat_time, device_id, stat_type, device_type, key_id, dbl_stats, 
                     long_stats, peak_energy, partial_peak_energy, off_peak_energy,
                     charge, peak_charge, partial_peak_charge, off_peak_charge, kgco2e)
@@ -39,8 +41,6 @@ AS $procedure$
         JOIN hd_device_keys hdk  ON hdk.device_type = hd.device_type
         LEFT JOIN hd_device_statistics_yearly hdsy ON hdsy.device_id = hd.device_id      
         WHERE hdsy.device_type = 'E'
---          AND kd."key" IN ('ConsumedEnergy', 'AVG_Active_Power', 'AVG_Reactive_Power',
---                                 'AVG_HZ', 'AVG_Voltage', 'AVG_Current', 'AVG_PF')
         GROUP BY hd.device_id, hdk.key_id
       )
       SELECT 
@@ -67,12 +67,9 @@ AS $procedure$
         SUM(hdsm.kgco2e) AS kgco2e
       FROM hd_device_statistics_monthly hdsm
       JOIN hd_device_keys hdk  ON hdk.device_type = hdsm.device_type
-      -- JOIN key_dictionary kd ON kd.key_id = hdsm.key_id
       LEFT JOIN epochs ep ON ep.device_id = hdsm.device_id AND ep.key_id = hdsm.key_id 
       WHERE hdsm.device_type ='E'
         AND hdsm.key_id = hdk.key_id
---        AND kd."key" IN ('ConsumedEnergy', 'AVG_Active_Power', 
---                        'AVG_Reactive_Power', 'AVG_HZ', 'AVG_Voltage', 'AVG_Current', 'AVG_PF')
         AND hdsm.device_id = v_device_id
         AND hdsm.stat_time > COALESCE (ep.latest_stat_time + INTERVAL '1 year' - INTERVAL '1 second', TO_TIMESTAMP('1911-01-01', 'YYYY-MM-DD'))
       GROUP BY 
@@ -93,11 +90,11 @@ AS $procedure$
       ;
   
       GET DIAGNOSTICS affected_rows = ROW_COUNT;
-      RAISE NOTICE '  新增 % 的年統計資料，共新增 % 筆。', v_device_id, affected_rows;
+      RAISE NOTICE '  新增 % 的耗用量年統計資料，共新增 % 筆。', v_device_id, affected_rows;
 
       END LOOP;
 
-      -- Close cursor
+      -- 關閉游標
       CLOSE v_device_cursor;  
 
       -- 捕捉異常並記錄錯誤，不中斷主迴圈

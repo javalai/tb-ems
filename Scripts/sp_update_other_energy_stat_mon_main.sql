@@ -15,21 +15,20 @@ AS $procedure$
       ;
     v_device_record RECORD;
     v_device_id varchar(10);
-    v_entity_id uuid;
 
     affected_rows numeric;
   BEGIN
   
-  -- 開啟 cursor
+  -- 開啟游標
   OPEN v_device_cursor;
   
-  -- Fetch rows and return
+  -- 依序處理
   LOOP
     FETCH NEXT FROM v_device_cursor INTO v_device_record;
     EXIT WHEN NOT FOUND;
     v_device_id = v_device_record.device_id;
    
-    RAISE NOTICE '開始處理 % 的月統計資料...', v_device_id;
+    RAISE NOTICE '開始處理非電能源 % 的月統計資料...', v_device_id;
 
     -- 以下處理新的月統計資料
     INSERT INTO hd_device_statistics_monthly(stat_time, device_id, stat_type, device_type, key_id, long_stats, dbl_stats, kgco2e)
@@ -81,7 +80,7 @@ AS $procedure$
       AND hdsd.device_id = v_device_id
       AND hdsd.stat_time >= COALESCE(ep.latest_stat_time, '1911-01-01')
     GROUP BY 
-      truncated_stat_time, hdsd.device_id, stat_type, hdsd.device_type, hdsd.key_id, kd."key"-- , ep.latest_stat_time
+      truncated_stat_time, hdsd.device_id, stat_type, hdsd.device_type, hdsd.key_id, kd."key"
     ORDER BY 
       truncated_stat_time, hdsd.device_id, stat_type, hdsd.device_type, hdsd.key_id
     ON CONFLICT(stat_time, device_id, device_type, key_id) DO UPDATE SET
@@ -94,7 +93,7 @@ AS $procedure$
 
   END LOOP;
 
-  -- Close cursor
+  -- 關閉游標
   CLOSE v_device_cursor;
 
   END;
