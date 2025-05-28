@@ -31,7 +31,7 @@ AS $procedure$
           ROW_NUMBER() OVER( ORDER BY t2.device_id, t2.stat_time, t2.stat_type, t2.device_type, t2.key_id) AS row_num
         FROM (
           SELECT 
-            hd.device_id, hd.factory_id,
+            hd.device_id, hd.entity_id, hd.factory_id,
             DATE_TRUNC('minute', TO_TIMESTAMP(tk.ts/1000)) AS stat_time,
             1 AS stat_type, -- 分統計
             hd.device_type,
@@ -46,8 +46,8 @@ AS $procedure$
           WHERE hd.device_id = p_device_id -- 
             AND tk."key" = hkc.accumulation_key_id
             AND tk.ts >= COALESCE(hdsml.latest_epoch, EXTRACT(EPOCH FROM TO_TIMESTAMP('1911-01-01', 'YYYY-MM-DD') )*1000)
-            GROUP BY hd.device_id, stat_time, stat_type, hd.device_type, hkc.consumption_key_id, hkc.emission_coeff
-            ORDER BY hd.device_id, stat_time, stat_type, hd.device_type, hkc.consumption_key_id
+            GROUP BY hd.device_id, hd.entity_id, stat_time, stat_type, hd.device_type, hkc.consumption_key_id, hkc.emission_coeff
+            ORDER BY hd.device_id, hd.entity_id, stat_time, stat_type, hd.device_type, hkc.consumption_key_id
         ) t2  
       ) t
       LEFT JOIN hd_config_param hcp ON hcp.param_name = t.emission_coeff AND hcp.factory_id = t.factory_id
