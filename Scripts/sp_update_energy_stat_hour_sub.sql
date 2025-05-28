@@ -95,9 +95,9 @@ AS $procedure$
     SELECT CLOCK_TIMESTAMP() INTO v_start_time;
     SELECT 0 INTO v_duration;
 
-    RAISE NOTICE '準備新增 % 的時統計資料...', p_device_id;
+    RAISE NOTICE '準備新增 % 的耗用量時統計資料...', p_device_id;
 
-    -- 打開 Cursor
+    -- 開啟游標
     OPEN v_cursor;
 
     -- 先讀取第一筆
@@ -158,8 +158,7 @@ AS $procedure$
               latest_stat_time = EXCLUDED.latest_stat_time,
               latest_epoch = EXCLUDED.latest_epoch
             ;
---        ELSE
---            RAISE NOTICE 'id: %, name: %', v_record.id, v_record.name;
+
         END IF;
 
         -- 如果是最後一筆，結束迴圈
@@ -173,7 +172,7 @@ AS $procedure$
     END LOOP;    
 
     SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
-    RAISE NOTICE '  新增 % 的時統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
+    RAISE NOTICE '  新增 % 的耗用量時統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
 
     EXCEPTION
           WHEN OTHERS THEN

@@ -20,10 +20,10 @@ AS $procedure$
     upd_rows numeric;
   BEGIN
 
-  -- Open cursor
+    -- 開啟游標
     OPEN v_device_cursor;
   
-    -- Fetch rows and return
+    -- 依序處理
     LOOP
       FETCH NEXT FROM v_device_cursor INTO v_device_record;
       EXIT WHEN NOT FOUND;
@@ -68,8 +68,6 @@ AS $procedure$
       LEFT JOIN epochs ep ON ep.device_id = hdsd.device_id AND ep.key_id = hdsd.key_id 
       WHERE hdsd.device_type ='E'
         AND hdsd.key_id = hdk.key_id
---        AND kd."key" IN ('ConsumedEnergy', 'AVG_Active_Power', 
---                        'AVG_Reactive_Power', 'AVG_HZ', 'AVG_Voltage', 'AVG_Current', 'AVG_PF')
         AND hdsd.device_id = v_device_id
         AND hdsd.stat_time > COALESCE (ep.latest_stat_time + INTERVAL '1 month' - INTERVAL '1 second', TO_TIMESTAMP('1911-01-01', 'YYYY-MM-DD'))
       GROUP BY 
@@ -89,15 +87,15 @@ AS $procedure$
       ;
   
       GET DIAGNOSTICS ins_rows = ROW_COUNT;
-      RAISE NOTICE '  新增 % 的月統計資料，共新增 % 筆。', v_device_id, ins_rows;
+      RAISE NOTICE '  新增 % 的耗用量月統計資料，共新增 % 筆。', v_device_id, ins_rows;
 
     END LOOP;
 
-    -- Close cursor
+    -- 關閉游標
     CLOSE v_device_cursor;  
 
     -- 捕捉異常並記錄錯誤，不中斷主迴圈
-    RAISE NOTICE '所有電表的月統計處理完成。';
+    RAISE NOTICE '所有電表的耗用量月統計處理完成。';
   
   END;
 $procedure$

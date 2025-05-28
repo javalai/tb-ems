@@ -36,7 +36,6 @@ AS $procedure$
       LEFT JOIN hd_device_stat_hour_latest latest ON latest.device_id=hdsm.device_id AND latest.device_type = hdsm.device_type AND latest.key_id = hdsm.key_id
       WHERE hd.device_id = p_device_id
         AND hdsm.key_id = hkc.consumption_key_id
-        -- AND (hkc.emission_coeff IS NOT NULL AND hcp.param_name = hkc.emission_coeff)
         AND hdsm.stat_time >= COALESCE(DATE_TRUNC('hour', latest.latest_stat_time), '1911-01-01')
       GROUP BY 
         truncated_stat_time, hdsm.device_id, stat_type, hdsm.device_type, hdsm.key_id, kd."key", hcp.float_value, hkc.emission_coeff
@@ -49,9 +48,9 @@ AS $procedure$
     SELECT CLOCK_TIMESTAMP() INTO v_start_time;
     SELECT 0 INTO v_duration;
 
-    RAISE NOTICE '準備新增非電儀表 % 的時統計資料...', p_device_id;
+    RAISE NOTICE '準備新增非電能源 % 的耗用量時統計資料...', p_device_id;
 
-    -- 打開 Cursor
+    -- 開啟游標
     OPEN v_cursor;
 
     -- 先讀取第一筆
@@ -97,7 +96,7 @@ AS $procedure$
             VALUES (
               v_rec.device_id, 
               v_rec.device_type, 
-              v_rec.key_id, --v_rec.new_key_id,
+              v_rec.key_id,
               v_rec.truncated_stat_time + INTERVAL '59 minutes 59 seconds',
               EXTRACT(EPOCH FROM v_rec.truncated_stat_time + INTERVAL '59 minutes 59 seconds')*1000
             )
@@ -118,7 +117,7 @@ AS $procedure$
     END LOOP;    
 
     SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
-    RAISE NOTICE '  新增 % 的時統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
+    RAISE NOTICE '  新增 % 的耗用量時統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
 
     EXCEPTION
           WHEN OTHERS THEN

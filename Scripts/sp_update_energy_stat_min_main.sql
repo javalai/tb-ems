@@ -29,10 +29,10 @@ AS $procedure$
     SELECT CLOCK_TIMESTAMP() INTO v_overall_start_time;
     SELECT 0 INTO v_overall_duration;
 
-    -- Open cursor
+    -- 開啟游標
     OPEN v_device_cursor;
 
-    -- Fetch rows and return
+    -- 依序處理
     LOOP
 
       FETCH NEXT FROM v_device_cursor INTO v_device_record;
@@ -43,7 +43,7 @@ AS $procedure$
       SELECT CLOCK_TIMESTAMP() INTO v_start_time;
       SELECT 0 INTO v_duration;
      
-      RAISE NOTICE '開始處理 % 的分統計資料...', v_device_id;
+      RAISE NOTICE '開始處理 % 的耗用量分統計資料...', v_device_id;
       
       -- 子交易塊處理個別設備
       BEGIN
@@ -62,7 +62,7 @@ AS $procedure$
       END;
     END LOOP;
 
-    
+    -- 關閉游標
     CLOSE v_device_cursor;
 
     SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_overall_start_time)) INTO v_overall_duration;

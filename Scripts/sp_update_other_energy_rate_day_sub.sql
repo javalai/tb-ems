@@ -49,9 +49,9 @@ AS $procedure$
     SELECT CLOCK_TIMESTAMP() INTO v_start_time;
     SELECT 0 INTO v_duration;
 
-    RAISE NOTICE '準備新增非電儀表 % 的流量時統計資料...', p_device_id;
+    RAISE NOTICE '準備新增非電能源 % 的瞬間量日統計資料...', p_device_id;
 
-    -- 打開 Cursor
+    -- 開啟游標
     OPEN v_cursor;
 
     -- 先讀取第一筆
@@ -113,7 +113,7 @@ AS $procedure$
     END LOOP;    
 
     SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
-    RAISE NOTICE '  新增 % 的流量時統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
+    RAISE NOTICE '  新增 % 的瞬間量日統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
 
     EXCEPTION
           WHEN OTHERS THEN

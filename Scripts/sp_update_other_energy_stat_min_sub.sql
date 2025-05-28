@@ -59,9 +59,9 @@ AS $procedure$
     SELECT CLOCK_TIMESTAMP() INTO v_start_time;
     SELECT 0 INTO v_duration;
 
-    RAISE NOTICE '準備新增 % 的分統計資料...', p_device_id;
+    RAISE NOTICE '準備新增非電能源 % 的分統計資料...', p_device_id;
 
-    -- 打開 Cursor
+    -- 開啟游標
     OPEN v_cursor;
 
     -- 先讀取第一筆
@@ -85,15 +85,6 @@ AS $procedure$
         END IF;
 
         -- 處理當前記錄
-
---        RAISE NOTICE '%, %, %, %, %, %, %, %', 
---          v_record.stat_time, 
---          v_record.device_id, 
---          v_record.stat_type, 
---          v_record.device_type, 
---          v_record.key_id, 
---          v_record.consumption, 
---          v_record.kgco2e;
         
         /* 為了統一資料類型以利計算，統計量均存入 dbl_stats */
         INSERT INTO hd_device_statistics_minutely(stat_time, device_id, stat_type, device_type, key_id, dbl_stats, kgco2e)
@@ -128,8 +119,6 @@ AS $procedure$
               latest_stat_time = EXCLUDED.latest_stat_time,
               latest_epoch = EXCLUDED.latest_epoch
             ;
---        ELSE
---            RAISE NOTICE 'id: %, name: %', v_record.id, v_record.name;
         END IF;
 
         -- 如果是最後一筆，結束迴圈
@@ -144,7 +133,7 @@ AS $procedure$
 
     SELECT EXTRACT(EPOCH FROM (CLOCK_TIMESTAMP()-v_start_time)) INTO v_duration;
     -- GET DIAGNOSTICS ins_rows = ROW_COUNT;
-    RAISE NOTICE '  新增 % 的耗用量分統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
+    RAISE NOTICE '  新增非電能源 % 的耗用量分統計資料，共新增 % 筆，計時 % 秒。', p_device_id, v_ins_rows, v_duration;
 
     EXCEPTION
       WHEN OTHERS THEN

@@ -19,15 +19,16 @@ AS $procedure$
     affected_rows NUMERIC;
   BEGIN
   
-  -- 開啟 cursor
+  -- 開啟游標
   OPEN v_device_cursor;
-  -- Fetch rows and return
+
+  -- 依序處理
   LOOP
     FETCH NEXT FROM v_device_cursor INTO v_device_record;
     EXIT WHEN NOT FOUND;
     v_device_id = v_device_record.device_id;
    
-    RAISE NOTICE '開始處理 % 的年統計資料...', v_device_id;
+    RAISE NOTICE '開始處理非電能源 % 的年統計資料...', v_device_id;
     
 
     -- 以下處理新的統計資料
@@ -90,11 +91,11 @@ AS $procedure$
       kgco2e = EXCLUDED.kgco2e
     ;
     GET DIAGNOSTICS affected_rows = ROW_COUNT;
-    RAISE NOTICE '新增 % 的年統計資料，共新增 % 筆。', v_device_id, affected_rows;
+    RAISE NOTICE '新增非電能源 % 的年統計資料，共新增 % 筆。', v_device_id, affected_rows;
 
   END LOOP;
 
-  -- Close cursor
+  -- 關閉游標
   CLOSE v_device_cursor;
 
   END;
