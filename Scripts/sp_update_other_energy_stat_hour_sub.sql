@@ -27,12 +27,7 @@ AS $procedure$
         COALESCE(AVG(hdsm.dbl_stats),0) AS dbl_avg,
         COALESCE(MIN(hdsm.dbl_stats),0) AS dbl_min,
         COALESCE(MAX(hdsm.dbl_stats),0) AS dbl_max,
-        -- SUM(hdsm.dbl_stats) * COALESCE(hcp.float_value, 0)
-        CASE
-          WHEN hkc.emission_coeff IS NOT NULL THEN
-            SUM(hdsm.dbl_stats) * COALESCE(hcp.float_value, 0)
-          ELSE 0
-        END AS kgco2e
+        SUM(hdsm.kgco2e) AS kgco2e
       FROM hd_device hd
       JOIN hd_device_statistics_minutely hdsm ON hdsm.device_id = hd.device_id
       LEFT JOIN hd_key_config hkc ON hkc.device_type = hd.device_type -- 能源 Key 設定表
