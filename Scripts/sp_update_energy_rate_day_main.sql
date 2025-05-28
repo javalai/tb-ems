@@ -7,18 +7,16 @@ AS $procedure$
 DECLARE 
 
   v_device_cursor CURSOR FOR
-    SELECT hd.device_id, hd.entity_id 
+    SELECT hd.device_id
     FROM hd_device hd
     WHERE hd.entity_id IS NOT NULL
       AND hd.factory_id NOT IN ('KC', 'KT')
+    -- 加入排序以便確認 device_id 處理順序
     ORDER BY hd.device_id
     ;
+
   v_device_record RECORD;
   v_device_id VARCHAR(50);
-  v_entity_id UUID;
-
-  ins_rows NUMERIC;
-  upd_rows NUMERIC;
 
 BEGIN
   -- Open cursor
@@ -28,7 +26,6 @@ BEGIN
     FETCH NEXT FROM v_device_cursor INTO v_device_record;
     EXIT WHEN NOT FOUND;
     v_device_id = v_device_record.device_id;
-    v_entity_id = v_device_record.entity_id;
      
     RAISE NOTICE '開始處理 % 的日統計資料...', v_device_id;
 
