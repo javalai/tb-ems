@@ -14,10 +14,6 @@ DECLARE
     ;
   v_device_record RECORD;
   v_device_id VARCHAR(50);
-  v_entity_id UUID;
-
-  ins_rows NUMERIC;
-  upd_rows NUMERIC;
 
 BEGIN
 
@@ -29,7 +25,6 @@ BEGIN
     FETCH NEXT FROM v_device_cursor INTO v_device_record;
     EXIT WHEN NOT FOUND;
     v_device_id = v_device_record.device_id;
-    v_entity_id = v_device_record.entity_id;
      
     RAISE NOTICE '開始處理 % 的耗用量日統計資料...', v_device_id;
 
