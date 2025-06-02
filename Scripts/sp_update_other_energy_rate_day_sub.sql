@@ -37,7 +37,7 @@ AS $procedure$
       JOIN ts_kv tk ON tk.entity_id = hd.entity_id
       JOIN hd_key_config hkc ON hkc.device_type = hd.device_type
       LEFT JOIN hd_device_stat_day_latest latest ON latest.device_id=hd.device_id AND latest.device_type = hd.device_type AND latest.key_id = hkc.rate_key_id
-      WHERE hd.device_id = p_device_id -- IN ('W0006', 'G0085') -- p_device_id 
+      WHERE hd.device_id = p_device_id
         AND tk."key" = hkc.rate_key_id -- 代表 XXX_flow_rate
         AND tk.ts >= EXTRACT(EPOCH FROM COALESCE(DATE_TRUNC('hour', latest.latest_stat_time), '1911-01-01'))*1000
       GROUP BY stat_time, hd.device_id, stat_type, hd.device_type, hkc.rate_key_id
@@ -84,11 +84,11 @@ AS $procedure$
 
         -- 只要是A. 目前 v_cursor 的最後一筆
         -- 或者是B. 下一筆資料(v_nrec)的 device_id 或 key_id 有變，表示當前資料是同一個key_id的最後一筆
-        -- 不管是A,B，都要記錄到 hd_device_stat_hour_latest 當中
+        -- 不管是A,B，都要記錄到 hd_device_stat_day_latest 當中
         IF is_last OR (v_rec.device_id <> v_nrec.device_id OR v_rec.key_id <> v_nrec.key_id) THEN
             RAISE NOTICE '  id: %, time: % -> 最後一筆!', v_rec.device_id, v_rec.stat_time;
 
-            INSERT INTO public.hd_device_stat_hour_latest(device_id, device_type, key_id, latest_stat_time, latest_epoch)
+            INSERT INTO public.hd_device_stat_day_latest(device_id, device_type, key_id, latest_stat_time, latest_epoch)
             VALUES (
               v_rec.device_id, 
               v_rec.device_type, 
