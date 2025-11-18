@@ -1,4 +1,4 @@
-DROP FUNCTION fn_get_energy_consumption;
+-- DROP FUNCTION fn_get_energy_consumption;
 
 CREATE OR REPLACE FUNCTION fn_get_energy_consumption(
     p_device_type CHAR(1),
