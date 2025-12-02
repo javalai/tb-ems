@@ -1,100 +1,120 @@
--- DROP FUNCTION public.fn_get_electricity_rate(timestamp);
+-- DROP FUNCTION public.fn_get_electricity_rate2(timestamp);
 
 CREATE OR REPLACE FUNCTION public.fn_get_electricity_rate(ts TIMESTAMP WITHOUT TIME ZONE)
  RETURNS real
  LANGUAGE plpgsql
 AS $function$
-  DECLARE
-
+DECLARE
     electricity_rate real;
 
-  BEGIN
+    v_day_type CHARACTER VARYING;
+    v_season_type CHARACTER VARYING;
+    v_period_type CHARACTER VARYING;
 
+    v_dow INTEGER;
+    v_mmdd CHARACTER VARYING;
+    v_hour TIME;
+    v_DEBUG BOOL := FALSE;
+
+BEGIN
+    -- 抽出時間基本欄位
+    SELECT EXTRACT('dow' FROM ts) INTO v_dow;
+    SELECT TO_CHAR(ts, 'MMDD') INTO v_mmdd;
+	SELECT CAST(ts AS TIME) INTO v_hour;
+
+	IF v_DEBUG THEN 
+		RAISE NOTICE 'v_dow = %', v_dow;
+		RAISE NOTICE 'v_mmdd = %', v_mmdd;
+		RAISE NOTICE 'v_hour = %', v_hour;
+    END IF;
+
+    -- 判斷日別 / 季節別 / 時段別
+    IF v_dow BETWEEN 1 AND 5 THEN -- 週一到週五
+        v_day_type := 'O';
+
+        IF v_mmdd BETWEEN '0516' AND '1015' THEN -- 夏月
+            v_season_type := 'S';
+            IF v_hour BETWEEN '16:00'::TIME AND '22:00'::TIME THEN
+                v_period_type := 'PE'; -- 尖峰
+            ELSIF (v_hour BETWEEN '09:00'::TIME AND '16:00'::TIME) OR (v_hour BETWEEN '22:00'::TIME AND '24:00'::TIME) THEN
+                v_period_type := 'PP'; -- 半尖峰
+            ELSE
+                v_period_type := 'OP'; -- 離峰
+            END IF;
+
+        ELSE -- 非夏月
+            v_season_type := 'N';
+            IF (v_hour BETWEEN '06:00'::TIME AND '11:00'::TIME) OR (v_hour BETWEEN '14:00'::TIME AND '24:00'::TIME) THEN
+                v_period_type := 'PP';
+            ELSE
+                v_period_type := 'OP';
+            END IF;
+        END IF;
+
+    ELSIF v_dow = 6 THEN -- 週六
+        v_day_type := 'T';
+
+        IF v_mmdd BETWEEN '0516' AND '1015' THEN
+            v_season_type := 'S';
+            IF v_hour >= '09:00:00'::TIME AND v_hour < '24:00:00'::TIME THEN
+                v_period_type := 'SPP';
+            ELSE
+                v_period_type := 'OP';
+            END IF;
+        ELSE
+            v_season_type := 'N';
+            IF (v_hour BETWEEN '06:00'::TIME AND '11:00'::TIME) OR (v_hour BETWEEN '14:00'::TIME AND '24:00'::TIME) THEN
+                v_period_type := 'SPP';
+            ELSE
+                v_period_type := 'OP';
+            END IF;
+        END IF;
+
+    ELSE -- 週日與離峰日
+        v_day_type := 'S';
+        v_season_type := 'A'; -- Always A for Sunday
+
+        v_period_type := 'OP'; -- 全日離峰
+    END IF;
+
+	IF v_DEBUG THEN 
+		RAISE NOTICE 'v_day_type = %', v_day_type;
+		RAISE NOTICE 'v_season_type = %', v_season_type;
+		RAISE NOTICE 'v_period_type = %', v_period_type;
+    END IF;
+
+    -- 查電價
     WITH energy_charge_rate AS (
       SELECT ec.*
-      FROM electricity_rate er
-      JOIN energy_charge ec ON ec.electricity_rate_id = er.id
-      WHERE er.name = '特高壓三段式時間電價'
-    ),
-    rate_table AS (
-    SELECT 
-    -- 週一到週五
-      -- 夏月
-      (SELECT ecr.summer_rate      FROM energy_charge_rate ecr WHERE ecr.day_type='O' AND period_type='PE' AND season_type='S') AS O_PE_S_summer_rate,
-      (SELECT ecr.summer_rate      FROM energy_charge_rate ecr WHERE ecr.day_type='O' AND period_type='PP' AND season_type='S') AS O_PP_S_summer_rate,
-      (SELECT ecr.summer_rate      FROM energy_charge_rate ecr WHERE ecr.day_type='O' AND period_type='OP' AND season_type='S') AS O_OP_S_summer_rate,
-      -- 非夏月
-      (SELECT ecr.non_summer_rate  FROM energy_charge_rate ecr WHERE ecr.day_type='O' AND period_type='PP' AND season_type='N') AS O_PP_N_non_summer_rate,
-      (SELECT ecr.non_summer_rate  FROM energy_charge_rate ecr WHERE ecr.day_type='O' AND period_type='OP' AND season_type='N') AS O_OP_N_non_summer_rate,
-    -- 週六
-      -- 夏月
-      (SELECT ecr.summer_rate      FROM energy_charge_rate ecr WHERE ecr.day_type='T' AND period_type='PP' AND season_type='S') AS T_PP_S_summer_rate,
-      (SELECT ecr.summer_rate      FROM energy_charge_rate ecr WHERE ecr.day_type='T' AND period_type='OP' AND season_type='S') AS T_OP_S_summer_rate,
-      -- 非夏月
-      (SELECT ecr.non_summer_rate  FROM energy_charge_rate ecr WHERE ecr.day_type='T' AND period_type='PP' AND season_type='N') AS T_PP_N_non_summer_rate,
-      (SELECT ecr.non_summer_rate  FROM energy_charge_rate ecr WHERE ecr.day_type='T' AND period_type='OP' AND season_type='N') AS T_OP_N_non_summer_rate,
-    -- 週日及離峰日     
-      -- 夏月
-      (SELECT ecr.summer_rate      FROM energy_charge_rate ecr WHERE ecr.day_type='S' AND period_type='OP' AND season_type='A') AS S_OP_S_summer_rate,
-      -- 非夏月
-      (SELECT ecr.non_summer_rate  FROM energy_charge_rate ecr WHERE ecr.day_type='S' AND period_type='OP' AND season_type='A') AS S_OP_N_non_summer_rate
+      FROM energy_charge ec 
+      WHERE ec.electricity_rate_id = (
+      	SELECT MAX(er.id) FROM electricity_rate er 
+      	WHERE er.effective_on <= ts
+      )
     )
-    SELECT
-       CASE
-          WHEN EXTRACT('dow' FROM ts) BETWEEN 1 AND 5 THEN -- 週一到週五
-            CASE
-              WHEN TO_CHAR(ts, 'MMDD') BETWEEN '0516' AND '1015' THEN -- 夏月:S
-                CASE 
-                  WHEN EXTRACT('hour' FROM ts) BETWEEN 16 AND 22 THEN -- 尖峰時間: PE
-                    rt.O_PE_S_summer_rate
-                  WHEN (EXTRACT('hour' FROM ts) BETWEEN 09 AND 16) OR (EXTRACT('hour' FROM ts) BETWEEN 22 AND 24) THEN -- 半尖峰時間: PP
-                    rt.O_PP_S_summer_rate
-                  WHEN EXTRACT('hour' FROM ts) BETWEEN 00 AND 09 THEN -- 離峰時間: OP
-                    rt.O_OP_S_summer_rate 
+    SELECT 
+        CASE
+            WHEN v_day_type = 'O' OR v_day_type = 'T' THEN
+                CASE v_season_type
+                    WHEN 'S' THEN summer_rate
+                    WHEN 'N' THEN non_summer_rate
                 END
-              ELSE -- 非夏月:N
-                CASE
-                  WHEN (EXTRACT('hour' FROM ts) BETWEEN 06 AND 11) OR (EXTRACT('hour' FROM ts) BETWEEN 14 AND 24) THEN -- 半尖峰時間: PP
-                    rt.O_PP_N_non_summer_rate
-                  WHEN (EXTRACT('hour' FROM ts) BETWEEN 00 AND 06) OR (EXTRACT('hour' FROM ts) BETWEEN 11 AND 14) THEN -- 離峰時間: OP
-                    rt.O_OP_N_non_summer_rate
+            WHEN v_day_type = 'S' THEN
+                CASE v_season_type
+                    WHEN 'S' THEN summer_rate
+                    WHEN 'N' THEN non_summer_rate
+                    WHEN 'A' THEN
+                        CASE
+                            WHEN v_mmdd BETWEEN '0516' AND '1015' THEN summer_rate
+                            ELSE non_summer_rate
+                        END
                 END
-            END 
-          WHEN EXTRACT('dow' FROM ts) = 6 THEN -- 週六: T
-            CASE
-              WHEN TO_CHAR(ts, 'MMDD') BETWEEN '0516' AND '1015' THEN -- 夏月:S
-                CASE 
-                  WHEN (EXTRACT('hour' FROM ts) BETWEEN 09 AND 24) THEN -- 半尖峰時間: PP
-                    rt.T_PP_S_summer_rate
-                  WHEN EXTRACT('hour' FROM ts) BETWEEN 00 AND 09 THEN -- 離峰時間: OP
-                    rt.T_OP_S_summer_rate
-                END
-              ELSE -- 非夏月:N
-                CASE
-                  WHEN (EXTRACT('hour' FROM ts) BETWEEN 06 AND 11) OR (EXTRACT('hour' FROM ts) BETWEEN 14 AND 24) THEN -- 半尖峰時間: PP
-                    rt.T_PP_N_non_summer_rate
-                  WHEN (EXTRACT('hour' FROM ts) BETWEEN 00 AND 06) OR (EXTRACT('hour' FROM ts) BETWEEN 11 AND 14) THEN -- 離峰時間: OP
-                    rt.T_OP_N_non_summer_rate
-                END
-            END    
-        ELSE -- 週日及離峰日
-          CASE
-            WHEN TO_CHAR(ts, 'MMDD') BETWEEN '0516' AND '1015' THEN -- 夏月:S
-              rt.S_OP_S_summer_rate
-            ELSE -- 非夏月:N
-              rt.S_OP_N_non_summer_rate
-          END
-      END into electricity_rate
-    FROM rate_table rt
-    ;
+        END INTO electricity_rate
+    FROM energy_charge_rate ecr
+    WHERE ecr.day_type = v_day_type
+      AND ecr.season_type = v_season_type
+      AND ecr.period_type = v_period_type;
 
     RETURN electricity_rate;
-
-  END;
-$function$
-;
-
--- Permissions
-
-ALTER FUNCTION public.fn_get_electricity_rate(timestamp) OWNER TO postgres;
-GRANT ALL ON FUNCTION public.fn_get_electricity_rate(timestamp) TO postgres;
+END;
+$function$;
