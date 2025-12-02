@@ -51,7 +51,7 @@ AS $procedure$
         
       FROM (
         SELECT 
-          DATE_TRUNC('hour', hdsm.stat_time) AS truncated_stat_time,
+          DATE_TRUNC('hour', hdsm.stat_time)::TIMESTAMP WITHOUT TIME ZONE AS truncated_stat_time,
           hdsm.device_id,
           hd.factory_id,
           2 AS stat_type, -- 時統計
