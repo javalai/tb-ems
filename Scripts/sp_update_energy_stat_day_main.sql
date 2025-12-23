@@ -32,6 +32,9 @@ BEGIN
 
       PERFORM DBLINK('host=/var/run/postgresql port=5432 user=postgres dbname=thingsboard',
         FORMAT('CALL public.sp_update_energy_stat_day_sub( ''%s'' )', v_device_id));
+      
+      PERFORM DBLINK('host=/var/run/postgresql port=5432 user=postgres dbname=thingsboard',
+        FORMAT('CALL public.sp_update_energy_stat_day_sub_consumption( ''%s'' )', v_device_id));
 
     EXCEPTION
         WHEN query_canceled THEN
@@ -44,8 +47,12 @@ BEGIN
   CLOSE v_device_cursor;
 
   -- 捕捉異常並記錄錯誤，不中斷主迴圈
-  RAISE NOTICE '所有電表的耗用量日統計處理完成。';
+  RAISE NOTICE '所有能源的耗用量日統計處理完成。';
 
 END;
 $procedure$
 ;
+
+COMMENT ON PROCEDURE public.sp_update_energy_stat_day_main() IS '電能日統計主程式
+說明：
+  依據時統計資料計算瞬間量平均最大最小、耗用量與電費';
