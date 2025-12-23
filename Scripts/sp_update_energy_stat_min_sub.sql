@@ -149,3 +149,9 @@ AS $procedure$
   END;
 $procedure$
 ;
+
+COMMENT ON PROCEDURE public.sp_update_energy_stat_min_sub(text) IS '電能分統計副程式
+參數：
+  p_device_id TEXT - 裝置ID
+說明：
+  依據統計資料計算耗用量';
