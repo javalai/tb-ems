@@ -62,3 +62,7 @@ AS $procedure$
   END;
 $procedure$
 ;
+
+COMMENT ON PROCEDURE public.sp_update_energy_stat_hour_main() IS '電能時統計主程式
+說明：
+  依據時統計資料計算耗用量與電費';
