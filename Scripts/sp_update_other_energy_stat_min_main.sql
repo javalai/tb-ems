@@ -67,3 +67,8 @@ AS $procedure$
   END;
 $procedure$
 ;
+
+COMMENT ON PROCEDURE sp_update_other_energy_stat_min_main()
+IS '非電能源分統計主程式
+說明：
+  依據統計資料計算耗用量';

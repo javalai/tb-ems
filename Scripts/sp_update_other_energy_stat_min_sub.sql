@@ -18,40 +18,31 @@ AS $procedure$
     v_ins_rows NUMERIC := 0;
 
     v_cursor CURSOR FOR 
-      SELECT t.stat_time, t.device_id, t.stat_type, t.device_type, t.key_id, t.consumption, 
-        CASE
-          WHEN hcp.float_value IS NOT NULL THEN t.consumption*hcp.float_value
-        END AS kgco2e
-      FROM (
-        SELECT t2.device_id, t2.factory_id, t2.stat_time, t2.stat_type, t2.device_type, t2.key_id, t2.emission_coeff,
-          CASE
-            WHEN COALESCE(t2.dbl_v, 0) < COALESCE(LAG(t2.dbl_v) OVER (ORDER BY t2.entity_id, t2.stat_time), COALESCE(t2.dbl_v, 0)) THEN 0
-            ELSE COALESCE(t2.dbl_v, 0) - COALESCE(LAG(t2.dbl_v) OVER (ORDER BY t2.entity_id, t2.stat_time), COALESCE(t2.dbl_v, 0)) 
-          END AS consumption,
-          ROW_NUMBER() OVER( ORDER BY t2.device_id, t2.stat_time, t2.stat_type, t2.device_type, t2.key_id) AS row_num
-        FROM (
-          SELECT 
-            hd.device_id, hd.entity_id, hd.factory_id,
-            DATE_TRUNC('minute', TO_TIMESTAMP(tk.ts/1000)) AS stat_time,
-            1 AS stat_type, -- 分統計
-            hd.device_type,
-            hkc.consumption_key_id AS key_id,
-            hkc.emission_coeff,
-            MAX(tk.long_v) AS long_v,
-            MAX(tk.dbl_v) AS dbl_v
-          FROM hd_device hd
-          JOIN ts_kv tk ON tk.entity_id =  hd.entity_id          
-          JOIN hd_key_config hkc ON hkc.device_type = hd.device_type
-          LEFT JOIN hd_device_stat_min_latest hdsml ON hdsml.device_id=hd.device_id AND hdsml.device_type = hd.device_type AND hdsml.key_id = hkc.consumption_key_id
-          WHERE hd.device_id = p_device_id -- 
-            AND tk."key" = hkc.accumulation_key_id
-            AND tk.ts >= COALESCE(hdsml.latest_epoch, EXTRACT(EPOCH FROM TO_TIMESTAMP('1911-01-01', 'YYYY-MM-DD') )*1000)
-            GROUP BY hd.device_id, hd.entity_id, stat_time, stat_type, hd.device_type, hkc.consumption_key_id, hkc.emission_coeff
-            ORDER BY hd.device_id, hd.entity_id, stat_time, stat_type, hd.device_type, hkc.consumption_key_id
-        ) t2  
-      ) t
-      LEFT JOIN hd_config_param hcp ON hcp.param_name = t.emission_coeff AND hcp.factory_id = t.factory_id
-      WHERE t.row_num > 1
+      SELECT 
+        -- st.latest_stat_time,
+        ec.bucket AS stat_time,
+        hd.entity_id,
+        hd.device_id, 
+        1 AS stat_type, -- 日統計
+        hd.device_type,
+        hkc.consumption_key_id AS key_id,
+        ec.energy_consumption AS consumption,
+        ec.energy_consumption*hcp.float_value AS kgco2e
+      FROM hd_device hd
+      JOIN hd_key_config hkc ON hkc.device_type = hd.device_type
+      LEFT JOIN hd_config_param hcp ON hcp.factory_id = hd.factory_id AND hcp.device_type = hd.device_type
+      LEFT JOIN hd_device_stat_min_latest st ON st.device_id = hd.device_id AND st.device_type = hd.device_type AND st.key_id = hkc.consumption_key_id 
+      JOIN fn_get_energy_consumption2(
+          p_device_id,
+          DATE_TRUNC('MINUTE', COALESCE(st.latest_stat_time, TO_TIMESTAMP('1911-01-01', 'YYYY-MM-DD')::TIMESTAMP))::TIMESTAMP WITHOUT TIME ZONE,
+          NULL,
+          'MINUTE') ec 
+        ON ec.device_id = hd.device_id
+      WHERE hd.device_id = p_device_id
+      GROUP BY 
+        stat_time, hd.device_id, stat_type, hd.device_type, hkc.consumption_key_id, ec.energy_consumption, hcp.float_value
+      ORDER BY
+        stat_time, hd.device_id, stat_type, hd.device_type, hkc.consumption_key_id
       ;
 
   BEGIN
@@ -142,3 +133,10 @@ AS $procedure$
   END;
 $procedure$
 ;
+
+COMMENT ON PROCEDURE sp_update_other_energy_stat_min_sub(TEXT)
+IS '非電能源分統計副程式
+參數：
+  p_device_id TEXT - 裝置ID
+說明：
+  依據統計資料計算耗用量';
